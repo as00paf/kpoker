@@ -10,3 +10,19 @@ plugins {
     alias(libs.plugins.kotlinMultiplatform) apply false
     alias(libs.plugins.ktor) apply false
 }
+
+tasks.register("runAll") {
+    group = "application"
+    description = "Runs both the server and the desktop application"
+    
+    doLast {
+        val isWindows = System.getProperty("os.name").lowercase().contains("win")
+        val gradlew = if (isWindows) "gradlew.bat" else "./gradlew"
+        
+        println("Starting Server...")
+        ProcessBuilder(gradlew, ":server:run").inheritIO().start()
+        
+        println("Starting Desktop App...")
+        ProcessBuilder(gradlew, ":composeApp:run").inheritIO().start()
+    }
+}
