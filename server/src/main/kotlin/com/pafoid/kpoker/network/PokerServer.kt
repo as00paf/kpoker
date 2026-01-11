@@ -11,14 +11,14 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class PokerServer {
-    private val sessions = ConcurrentHashMap<String, DefaultWebSocketServerSession>()
+    private val sessions = ConcurrentHashMap<String, WebSocketSession>()
     private val rooms = ConcurrentHashMap<String, Room>()
     private val playerToRoom = ConcurrentHashMap<String, String>() // PlayerID to RoomID
     private val playerNames = ConcurrentHashMap<String, String>()
     private val mutex = Mutex()
     private val json = Json { ignoreUnknownKeys = true }
 
-    suspend fun handleConnection(session: DefaultWebSocketServerSession) {
+    suspend fun handleConnection(session: WebSocketSession) {
         val playerId = UUID.randomUUID().toString()
         sessions[playerId] = session
 
@@ -31,7 +31,9 @@ class PokerServer {
                     val text = frame.readText()
                     val message = try {
                         json.decodeFromString<GameMessage>(text)
-                    } catch (e: Exception) { null }
+                    } catch (e: Exception) { 
+                        null 
+                    }
 
                     when (message) {
                         is GameMessage.CreateRoom -> handleCreateRoom(playerId, message.roomName)
@@ -93,14 +95,15 @@ class PokerServer {
         sessions.remove(playerId)
     }
 
-    private suspend fun sendRoomList(session: DefaultWebSocketServerSession) {
+    private suspend fun sendRoomList(session: WebSocketSession) {
         val info = rooms.values.map { it.getInfo() }
-        session.send(Frame.Text(json.encodeToString(GameMessage.RoomList(info))))
+        val msg = json.encodeToString<GameMessage>(GameMessage.RoomList(info))
+        session.send(Frame.Text(msg))
     }
 
     private suspend fun broadcastRoomList() {
         val info = rooms.values.map { it.getInfo() }
-        val msg = json.encodeToString(GameMessage.RoomList(info))
+        val msg = json.encodeToString<GameMessage>(GameMessage.RoomList(info))
         sessions.values.forEach { it.send(Frame.Text(msg)) }
     }
 }
