@@ -15,18 +15,26 @@ class GameEngine {
     }
 
     fun startNewHand() {
-        if (state.players.size < 2) return
+        if (state.players.count { it.chips > 0 } < 2) return
+        
+        // Rotate dealer
+        val nextDealerIndex = if (state.stage == GameStage.WAITING) 0 else (state.dealerIndex + 1) % state.players.size
         
         deck = Deck()
         deck.shuffle()
         
         val playersWithCards = state.players.map { player ->
-            player.copy(
-                holeCards = listOf(deck.draw(), deck.draw()),
-                isFolded = false,
-                currentBet = 0,
-                isAllIn = false
-            )
+            if (player.chips > 0) {
+                player.copy(
+                    holeCards = listOf(deck.draw(), deck.draw()),
+                    isFolded = false,
+                    currentBet = 0,
+                    totalContribution = 0,
+                    isAllIn = false
+                )
+            } else {
+                player.copy(isFolded = true, holeCards = emptyList(), currentBet = 0, totalContribution = 0)
+            }
         }
         
         state = state.copy(
@@ -35,40 +43,71 @@ class GameEngine {
             pot = 0,
             stage = GameStage.PRE_FLOP,
             currentMaxBet = 0,
-            playersActedThisRound = emptySet()
+            playersActedThisRound = emptySet(),
+            dealerIndex = nextDealerIndex,
+            lastHandResult = null
         )
 
         postBlinds()
     }
 
     private fun postBlinds() {
-        val sbIndex = (state.dealerIndex + 1) % state.players.size
-        val bbIndex = (state.dealerIndex + 2) % state.players.size
-        
-        updatePlayerBet(sbIndex, state.smallBlind)
-        updatePlayerBet(bbIndex, state.bigBlind)
-        
-        state = state.copy(
-            currentMaxBet = state.bigBlind,
-            minRaise = state.bigBlind,
-            activePlayerIndex = (bbIndex + 1) % state.players.size,
-            lastRaiserIndex = bbIndex
-        )
+        val activePlayers = state.players.filter { it.chips > 0 }
+        if (activePlayers.size < 2) return
+
+        val activePlayersCount = activePlayers.size
+
+        if (activePlayersCount == 2) {
+            // Heads-up: Dealer is SB, other is BB
+            val sbIndex = state.dealerIndex
+            val bbIndex = (state.dealerIndex + 1) % state.players.size
+            
+            updatePlayerBet(sbIndex, state.smallBlind)
+            updatePlayerBet(bbIndex, state.bigBlind)
+            
+            state = state.copy(
+                currentMaxBet = state.bigBlind,
+                minRaise = state.bigBlind,
+                activePlayerIndex = sbIndex,
+                lastRaiserIndex = bbIndex,
+                turnStartedAt = System.currentTimeMillis()
+            )
+        } else {
+            // 3+ players: SB is Dealer+1, BB is Dealer+2
+            val sbIndex = (state.dealerIndex + 1) % state.players.size
+            val bbIndex = (state.dealerIndex + 2) % state.players.size
+            
+            updatePlayerBet(sbIndex, state.smallBlind)
+            updatePlayerBet(bbIndex, state.bigBlind)
+            
+            state = state.copy(
+                currentMaxBet = state.bigBlind,
+                minRaise = state.bigBlind,
+                activePlayerIndex = (bbIndex + 1) % state.players.size,
+                lastRaiserIndex = bbIndex,
+                turnStartedAt = System.currentTimeMillis()
+            )
+        }
     }
 
     private fun updatePlayerBet(playerIndex: Int, amount: Long) {
         val player = state.players[playerIndex]
+        if (player.chips <= 0 && amount > 0) return
+
         val actualBet = minOf(player.chips, amount)
         val newPlayers = state.players.toMutableList()
         newPlayers[playerIndex] = player.copy(
             chips = player.chips - actualBet,
             currentBet = player.currentBet + actualBet,
-            isAllIn = player.chips == actualBet
+            totalContribution = player.totalContribution + actualBet,
+            isAllIn = (player.chips == actualBet) && (player.chips > 0)
         )
         state = state.copy(players = newPlayers)
     }
 
     fun handleAction(playerId: String, action: BettingAction) {
+        if (state.stage == GameStage.SHOWDOWN || state.stage == GameStage.WAITING) return
+
         val playerIndex = state.players.indexOfFirst { it.id == playerId }
         if (playerIndex != state.activePlayerIndex) return
 
@@ -81,7 +120,7 @@ class GameEngine {
                 state = state.copy(players = newPlayers)
             }
             is BettingAction.Check -> {
-                if (player.currentBet < state.currentMaxBet) return // Cannot check if there's a bet
+                if (player.currentBet < state.currentMaxBet) return 
             }
             is BettingAction.Call -> {
                 val callAmount = state.currentMaxBet - player.currentBet
@@ -90,7 +129,8 @@ class GameEngine {
             is BettingAction.Raise -> {
                 val totalBet = action.amount
                 val raiseAmount = totalBet - player.currentBet
-                if (totalBet < state.currentMaxBet + state.minRaise) return // Not a legal raise
+                if (totalBet < state.currentMaxBet + state.minRaise) return 
+                if (raiseAmount > player.chips) return 
                 
                 val newMinRaise = totalBet - state.currentMaxBet
                 updatePlayerBet(playerIndex, raiseAmount)
@@ -115,53 +155,65 @@ class GameEngine {
             }
         }
 
-        state = state.copy(playersActedThisRound = state.playersActedThisRound + playerId)
+        state = state.copy(
+            playersActedThisRound = state.playersActedThisRound + playerId
+        )
         moveToNextPlayer()
+    }
+
+    fun checkTimeouts() {
+        val startedAt = state.turnStartedAt ?: return
+        if (System.currentTimeMillis() - startedAt > state.turnTimeoutMillis) {
+            val activePlayer = state.activePlayer ?: return
+            if (activePlayer.currentBet >= state.currentMaxBet) {
+                handleAction(activePlayer.id, BettingAction.Check)
+            } else {
+                handleAction(activePlayer.id, BettingAction.Fold)
+            }
+        }
     }
 
     private fun moveToNextPlayer() {
         val activeNotFolded = state.players.filter { !it.isFolded }
         if (activeNotFolded.size <= 1) {
             collectBetsIntoPot()
-            determineWinners()
-            state = state.copy(stage = GameStage.SHOWDOWN, activePlayerIndex = -1)
+            distributePots()
+            state = state.copy(stage = GameStage.SHOWDOWN, activePlayerIndex = -1, turnStartedAt = null)
             return
         }
 
         if (isBettingRoundOver()) {
             collectBetsIntoPot()
+            
+            val activeNotAllIn = state.players.filter { !it.isFolded && !it.isAllIn }
+            if (activeNotAllIn.size <= 1) {
+                while (state.board.size < 5) {
+                    state = state.copy(board = state.board + deck.draw())
+                }
+                distributePots()
+                state = state.copy(stage = GameStage.SHOWDOWN, activePlayerIndex = -1, turnStartedAt = null)
+                return
+            }
+            
             nextStage()
             return
         }
 
         var nextIndex = (state.activePlayerIndex + 1) % state.players.size
-        while (state.players[nextIndex].isFolded || state.players[nextIndex].isAllIn) {
+        var loopCount = 0
+        while ((state.players[nextIndex].isFolded || state.players[nextIndex].isAllIn) && loopCount < state.players.size) {
             nextIndex = (nextIndex + 1) % state.players.size
-            if (nextIndex == state.activePlayerIndex) break 
+            loopCount++
         }
         
-        state = state.copy(activePlayerIndex = nextIndex)
+        state = state.copy(activePlayerIndex = nextIndex, turnStartedAt = System.currentTimeMillis())
     }
 
     private fun isBettingRoundOver(): Boolean {
         val activeCanAct = state.players.filter { !it.isFolded && !it.isAllIn }
         
-        // If no one can act, round is over
         if (activeCanAct.isEmpty()) return true
         
-        // If only one player can act, they must have matched the bet
-        if (activeCanAct.size == 1) {
-            val p = activeCanAct.first()
-            if (state.playersActedThisRound.contains(p.id) && p.currentBet == state.currentMaxBet) {
-                return true
-            }
-            // Exception: BB can check in Pre-flop if no one raised
-            if (state.stage == GameStage.PRE_FLOP && p.currentBet == state.currentMaxBet && state.lastRaiserIndex == state.players.indexOf(p)) {
-                 // wait, if BB is the last raiser and it's pre-flop, and everyone else just called/folded
-            }
-        }
-
-        // Standard condition: Everyone not folded/all-in has acted AND bets match
         val allActed = activeCanAct.all { state.playersActedThisRound.contains(it.id) }
         val betsMatch = state.players.filter { !it.isFolded }.all { it.isAllIn || it.currentBet == state.currentMaxBet }
 
@@ -187,19 +239,19 @@ class GameEngine {
         state = when (state.stage) {
             GameStage.PRE_FLOP -> {
                 val flop = listOf(deck.draw(), deck.draw(), deck.draw())
-                state.copy(stage = GameStage.FLOP, board = flop, activePlayerIndex = firstToActAfterFlop())
+                state.copy(stage = GameStage.FLOP, board = flop, activePlayerIndex = firstToActAfterFlop(), turnStartedAt = System.currentTimeMillis())
             }
             GameStage.FLOP -> {
                 val turn = state.board + deck.draw()
-                state.copy(stage = GameStage.TURN, board = turn, activePlayerIndex = firstToActAfterFlop())
+                state.copy(stage = GameStage.TURN, board = turn, activePlayerIndex = firstToActAfterFlop(), turnStartedAt = System.currentTimeMillis())
             }
             GameStage.TURN -> {
                 val river = state.board + deck.draw()
-                state.copy(stage = GameStage.RIVER, board = river, activePlayerIndex = firstToActAfterFlop())
+                state.copy(stage = GameStage.RIVER, board = river, activePlayerIndex = firstToActAfterFlop(), turnStartedAt = System.currentTimeMillis())
             }
             GameStage.RIVER -> {
-                determineWinners()
-                state.copy(stage = GameStage.SHOWDOWN, activePlayerIndex = -1)
+                distributePots()
+                state.copy(stage = GameStage.SHOWDOWN, activePlayerIndex = -1, turnStartedAt = null)
             }
             else -> state
         }
@@ -207,44 +259,38 @@ class GameEngine {
 
     private fun firstToActAfterFlop(): Int {
         var idx = (state.dealerIndex + 1) % state.players.size
-        // Find first player not folded
         for (i in 0 until state.players.size) {
             val currentIdx = (idx + i) % state.players.size
             if (!state.players[currentIdx].isFolded && !state.players[currentIdx].isAllIn) {
                 return currentIdx
             }
         }
-        // If everyone is all-in or folded, return -1 (will transition automatically probably)
         return -1
     }
 
-    private fun determineWinners() {
+    private fun distributePots() {
+        val pots = PotManager.calculatePots(state.players)
         val activePlayers = state.players.filter { !it.isFolded }
-        if (activePlayers.isEmpty()) return
-
-        if (activePlayers.size == 1) {
-            val winner = activePlayers.first()
-            val share = state.pot
-            val newPlayers = state.players.toMutableList()
-            val idx = newPlayers.indexOfFirst { it.id == winner.id }
-            newPlayers[idx] = newPlayers[idx].copy(chips = newPlayers[idx].chips + share)
-            state = state.copy(players = newPlayers, pot = 0)
-            return
+        
+        val playerHands = if (activePlayers.size > 1 && state.board.size == 5) {
+            activePlayers.associate { it.id to HandEvaluator.evaluate(state.board + it.holeCards) }
+        } else {
+            activePlayers.associate { it.id to Hand(HandType.HIGH_CARD, emptyList(), description = "Winner") }
         }
 
-        val playerHands = activePlayers.associate { it.id to HandEvaluator.evaluate(state.board + it.holeCards) }
-        val winners = WinnerDeterminer.determineWinners(state.board, activePlayers.associate { it.id to it.holeCards })
+        val distribution = PotManager.distribute(pots, playerHands)
         
-        val share = state.pot / winners.size
-        val remainder = state.pot % winners.size
-        
-        val newPlayers = state.players.toMutableList()
-        winners.forEachIndexed { index, winnerId ->
-            val idx = newPlayers.indexOfFirst { it.id == winnerId }
-            val extra = if (index == 0) remainder else 0
-            newPlayers[idx] = newPlayers[idx].copy(chips = newPlayers[idx].chips + share + extra)
+        val newPlayers = state.players.map { player ->
+            val winAmount = distribution[player.id] ?: 0L
+            player.copy(chips = player.chips + winAmount)
         }
-        state = state.copy(players = newPlayers, pot = 0)
+        
+        val winners = distribution.keys.toList()
+        state = state.copy(
+            players = newPlayers, 
+            pot = 0,
+            lastHandResult = HandResult(winners, distribution, playerHands)
+        )
     }
 
     fun getState() = state
