@@ -24,6 +24,10 @@ sealed class GameMessage {
     data class CreateRoom(val roomName: String) : GameMessage()
 
     @Serializable
+    @SerialName("create_single_player_room")
+    object CreateSinglePlayerRoom : GameMessage()
+
+    @Serializable
     @SerialName("join_room")
     data class JoinRoom(val roomId: String, val playerName: String) : GameMessage()
 

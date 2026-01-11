@@ -91,6 +91,12 @@ class GameViewModel(private val scope: CoroutineScope) {
         }
     }
 
+    fun createSinglePlayerRoom() {
+        scope.launch {
+            client.sendMessage(GameMessage.CreateSinglePlayerRoom)
+        }
+    }
+
     fun joinRoom(roomId: String) {
         scope.launch {
             client.sendMessage(GameMessage.JoinRoom(roomId, myUsername))

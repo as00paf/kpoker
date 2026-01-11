@@ -60,23 +60,59 @@ class PokerServer {
 
 
 
-                    when (message) {
+                                        when (message) {
 
-                        is GameMessage.Register -> handleRegister(sessionId, message)
 
-                        is GameMessage.Login -> handleLogin(sessionId, message)
 
-                        is GameMessage.CreateRoom -> {
+                                            is GameMessage.Register -> handleRegister(sessionId, message)
 
-                            val playerId = authenticatedPlayers[sessionId]
 
-                            if (playerId != null) handleCreateRoom(playerId, message.roomName)
 
-                            else sendError(session, "Not authenticated")
+                                            is GameMessage.Login -> handleLogin(sessionId, message)
 
-                        }
 
-                        is GameMessage.JoinRoom -> {
+
+                                            is GameMessage.CreateRoom -> {
+
+
+
+                                                val playerId = authenticatedPlayers[sessionId]
+
+
+
+                                                if (playerId != null) handleCreateRoom(playerId, message.roomName)
+
+
+
+                                                else sendError(session, "Not authenticated")
+
+
+
+                                            }
+
+
+
+                                            is GameMessage.CreateSinglePlayerRoom -> {
+
+
+
+                                                val playerId = authenticatedPlayers[sessionId]
+
+
+
+                                                if (playerId != null) handleCreateSinglePlayerRoom(playerId)
+
+
+
+                                                else sendError(session, "Not authenticated")
+
+
+
+                                            }
+
+
+
+                                            is GameMessage.JoinRoom -> {
 
                             val playerId = authenticatedPlayers[sessionId]
 
@@ -190,6 +226,23 @@ class PokerServer {
         val roomId = UUID.randomUUID().toString()
         val room = Room(roomId, name)
         rooms[roomId] = room
+        broadcastRoomList()
+    }
+
+    private suspend fun handleCreateSinglePlayerRoom(playerId: String) = mutex.withLock {
+        val roomId = UUID.randomUUID().toString()
+        val room = Room(roomId, "${playerNames[playerId]}'s Single Player Game")
+        rooms[roomId] = room
+        
+        // Add human
+        playerToRoom[playerId] = roomId
+        val sessionId = authenticatedPlayers.entries.find { it.value == playerId }?.key ?: return@withLock
+        room.addPlayer(playerId, playerNames[playerId]!!, sessions[sessionId]!!)
+        
+        // Add AI
+        val aiId = "ai_${UUID.randomUUID()}"
+        room.addAiPlayer(aiId, "The House")
+        
         broadcastRoomList()
     }
 

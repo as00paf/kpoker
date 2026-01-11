@@ -19,6 +19,7 @@ import org.jetbrains.compose.resources.painterResource
 fun LobbyScreen(
     rooms: List<RoomInfo>,
     onCreateRoom: (String) -> Unit,
+    onCreateSinglePlayerRoom: () -> Unit,
     onJoinRoom: (String) -> Unit,
     onLogout: () -> Unit
 ) {
@@ -47,8 +48,16 @@ fun LobbyScreen(
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.onPrimary
                 )
-                Button(onClick = onLogout) {
-                    Text("Logout")
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onCreateSinglePlayerRoom,
+                        colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
+                    ) {
+                        Text("Play vs The House")
+                    }
+                    Button(onClick = onLogout) {
+                        Text("Logout")
+                    }
                 }
             }
 

@@ -49,6 +49,7 @@ fun App() {
                 LobbyScreen(
                     rooms = viewModel.rooms,
                     onCreateRoom = { name -> viewModel.createRoom(name) },
+                    onCreateSinglePlayerRoom = { viewModel.createSinglePlayerRoom() },
                     onJoinRoom = { roomId -> viewModel.joinRoom(roomId) },
                     onLogout = { viewModel.logout() }
                 )
