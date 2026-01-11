@@ -1,13 +1,19 @@
 package com.pafoid.kpoker.network
 
+import kotlinx.coroutines.runBlocking
 import kotlin.test.*
 
 class AuthServiceTest {
 
     private val authService = AuthService()
 
+    @BeforeTest
+    fun setup() {
+        DatabaseFactory.init()
+    }
+
     @Test
-    fun testRegisterAndLogin() {
+    fun testRegisterAndLogin() = runBlocking {
         val (regSuccess, userId) = authService.register("alice", "password123")
         assertTrue(regSuccess)
         assertNotNull(userId)
@@ -18,7 +24,7 @@ class AuthServiceTest {
     }
 
     @Test
-    fun testDuplicateRegister() {
+    fun testDuplicateRegister() = runBlocking {
         authService.register("bob", "pass")
         val (success, message) = authService.register("bob", "other")
         assertFalse(success)
@@ -26,7 +32,7 @@ class AuthServiceTest {
     }
 
     @Test
-    fun testInvalidLogin() {
+    fun testInvalidLogin() = runBlocking {
         authService.register("charlie", "secret")
         
         val (wrongPassSuccess, _) = authService.login("charlie", "wrong")

@@ -9,8 +9,11 @@ import io.ktor.server.websocket.*
 import kotlin.time.Duration.Companion.seconds
 
 import com.pafoid.kpoker.network.PokerServer
+import com.pafoid.kpoker.network.DatabaseFactory
+
 fun main() {
     println("KPoker Server is starting...")
+    DatabaseFactory.init()
     embeddedServer(Netty, port = SERVER_PORT, host = "0.0.0.0", module = Application::module)
         .start(wait = true)
 }

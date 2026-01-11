@@ -21,6 +21,13 @@ dependencies {
     implementation(libs.ktor.serverNetty)
     implementation(libs.ktor.serverWebsockets)
     implementation(libs.kotlinx.serialization.json)
+
+    // Database
+    implementation("org.jetbrains.exposed:exposed-core:0.59.0")
+    implementation("org.jetbrains.exposed:exposed-dao:0.59.0")
+    implementation("org.jetbrains.exposed:exposed-jdbc:0.59.0")
+    implementation("org.xerial:sqlite-jdbc:3.48.0.0")
+
     testImplementation(libs.ktor.serverTestHost)
     testImplementation(libs.kotlin.testJunit)
 }
