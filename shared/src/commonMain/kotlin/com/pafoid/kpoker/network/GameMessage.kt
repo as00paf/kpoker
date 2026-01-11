@@ -8,6 +8,18 @@ import kotlinx.serialization.SerialName
 @Serializable
 sealed class GameMessage {
     @Serializable
+    @SerialName("register")
+    data class Register(val username: String, val password: String) : GameMessage()
+
+    @Serializable
+    @SerialName("login")
+    data class Login(val username: String, val password: String) : GameMessage()
+
+    @Serializable
+    @SerialName("auth_response")
+    data class AuthResponse(val success: Boolean, val message: String, val playerId: String? = null) : GameMessage()
+
+    @Serializable
     @SerialName("create_room")
     data class CreateRoom(val roomName: String) : GameMessage()
 
