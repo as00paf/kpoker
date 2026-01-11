@@ -87,4 +87,8 @@ The server application will be a modern command-line interface (CLI) that provid
 
 To ensure the server application is properly set up, it will display a welcome message upon startup. This will serve as a basic "Hello World" functionality.
 
+### WebSocket Endpoint
+
+The server includes a `/ws` WebSocket endpoint that echoes back any text messages it receives. This serves as a basic test for WebSocket connectivity.
+
 ```
