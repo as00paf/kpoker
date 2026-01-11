@@ -50,6 +50,7 @@ The main project structure is already defined by the template used from the jetb
 
 - **Server-side Code**: The backend logic is also part of this KMP project to maximize code reuse. It is a modern CLI application that allows for command inputs and shows logs and status messages, running games based on user-defined parameters. It uses Ktor websockets and appropriate service classes to manage connections and messages. It will likely be located in a `serverMain` source set or a dedicated server module.
 - **Package Name**: The primary package for the application is `com.pafoid.kpoker`.
+-   **Data Classes**: Core data structures like `Card`, `Deck`, `Player`, and `GameState` are defined in `com.pafoid.kpoker.data` within the `shared` module for multiplatform use.
 
 ## 5. Build and Run Commands
 
