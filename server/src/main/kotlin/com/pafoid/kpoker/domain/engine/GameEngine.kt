@@ -5,6 +5,8 @@ import com.pafoid.kpoker.domain.evaluator.WinnerDeterminer
 import com.pafoid.kpoker.domain.evaluator.PotManager
 import com.pafoid.kpoker.domain.model.*
 
+import com.pafoid.kpoker.getCurrentTimeMillis
+
 class GameEngine {
     private var state = GameState()
     private var deck = Deck()
@@ -70,7 +72,7 @@ class GameEngine {
                 minRaise = state.bigBlind,
                 activePlayerIndex = sbIndex,
                 lastRaiserIndex = bbIndex,
-                turnStartedAt = System.currentTimeMillis()
+                turnStartedAt = getCurrentTimeMillis()
             )
         } else {
             // 3+ players: SB is Dealer+1, BB is Dealer+2
@@ -85,7 +87,7 @@ class GameEngine {
                 minRaise = state.bigBlind,
                 activePlayerIndex = (bbIndex + 1) % state.players.size,
                 lastRaiserIndex = bbIndex,
-                turnStartedAt = System.currentTimeMillis()
+                turnStartedAt = getCurrentTimeMillis()
             )
         }
     }
@@ -163,7 +165,7 @@ class GameEngine {
 
     fun checkTimeouts() {
         val startedAt = state.turnStartedAt ?: return
-        if (System.currentTimeMillis() - startedAt > state.turnTimeoutMillis) {
+        if (getCurrentTimeMillis() - startedAt > state.turnTimeoutMillis) {
             val activePlayer = state.activePlayer ?: return
             if (activePlayer.currentBet >= state.currentMaxBet) {
                 handleAction(activePlayer.id, BettingAction.Check)
@@ -206,7 +208,7 @@ class GameEngine {
             loopCount++
         }
         
-        state = state.copy(activePlayerIndex = nextIndex, turnStartedAt = System.currentTimeMillis())
+        state = state.copy(activePlayerIndex = nextIndex, turnStartedAt = getCurrentTimeMillis())
     }
 
     private fun isBettingRoundOver(): Boolean {
@@ -239,15 +241,15 @@ class GameEngine {
         state = when (state.stage) {
             GameStage.PRE_FLOP -> {
                 val flop = listOf(deck.draw(), deck.draw(), deck.draw())
-                state.copy(stage = GameStage.FLOP, board = flop, activePlayerIndex = firstToActAfterFlop(), turnStartedAt = System.currentTimeMillis())
+                state.copy(stage = GameStage.FLOP, board = flop, activePlayerIndex = firstToActAfterFlop(), turnStartedAt = getCurrentTimeMillis())
             }
             GameStage.FLOP -> {
                 val turn = state.board + deck.draw()
-                state.copy(stage = GameStage.TURN, board = turn, activePlayerIndex = firstToActAfterFlop(), turnStartedAt = System.currentTimeMillis())
+                state.copy(stage = GameStage.TURN, board = turn, activePlayerIndex = firstToActAfterFlop(), turnStartedAt = getCurrentTimeMillis())
             }
             GameStage.TURN -> {
                 val river = state.board + deck.draw()
-                state.copy(stage = GameStage.RIVER, board = river, activePlayerIndex = firstToActAfterFlop(), turnStartedAt = System.currentTimeMillis())
+                state.copy(stage = GameStage.RIVER, board = river, activePlayerIndex = firstToActAfterFlop(), turnStartedAt = getCurrentTimeMillis())
             }
             GameStage.RIVER -> {
                 distributePots()

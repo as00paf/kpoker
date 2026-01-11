@@ -6,6 +6,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.graphics.StrokeCap
@@ -18,7 +19,10 @@ import kpoker.composeapp.generated.resources.game_screen_bg
 import org.jetbrains.compose.resources.painterResource
 
 import androidx.compose.ui.text.style.TextAlign
+import com.pafoid.kpoker.Gold
 import com.pafoid.kpoker.domain.model.GameStage
+
+import com.pafoid.kpoker.getCurrentTimeMillis
 
 @Composable
 fun GameScreen(
@@ -28,12 +32,12 @@ fun GameScreen(
     onLeave: () -> Unit,
     onStartGame: () -> Unit
 ) {
-    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    var currentTime by remember { mutableStateOf(getCurrentTimeMillis()) }
     
     LaunchedEffect(Unit) {
         while (true) {
             kotlinx.coroutines.delay(100)
-            currentTime = System.currentTimeMillis()
+            currentTime = getCurrentTimeMillis()
         }
     }
 
@@ -244,13 +248,26 @@ fun GameScreen(
                     result.winners.forEach { winnerId ->
                         val winnerName = state.players.find { it.id == winnerId }?.name ?: "Unknown"
                         val wonAmount = result.amountWon[winnerId] ?: 0
-                        val handDesc = result.playerHands[winnerId]?.description ?: ""
+                        val winningHand = result.playerHands[winnerId]
+                        val handDesc = winningHand?.description ?: ""
                         
                         Text(
                             text = "$winnerName won $wonAmount chips",
                             style = MaterialTheme.typography.headlineSmall,
                             color = Color.White
                         )
+                        
+                        if (winningHand != null && winningHand.cards.isNotEmpty()) {
+                            Row(
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                winningHand.cards.forEach { card ->
+                                    PokerCard(card = card, modifier = Modifier.size(50.dp, 75.dp))
+                                }
+                            }
+                        }
+
                         if (handDesc.isNotBlank()) {
                             Text(
                                 text = "with $handDesc",

@@ -17,15 +17,17 @@ import kpoker.composeapp.generated.resources.*
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 
+import androidx.compose.ui.graphics.RectangleShape
+
 @Composable
 fun PokerCard(
     card: CardModel?,
     modifier: Modifier = Modifier
 ) {
-    Card(
+    Surface(
         modifier = modifier.size(80.dp, 120.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
-        colors = CardDefaults.cardColors(containerColor = Color.White)
+        shape = RectangleShape,
+        color = Color.Transparent
     ) {
         Box(modifier = Modifier.fillMaxSize()) {
             if (card != null) {
