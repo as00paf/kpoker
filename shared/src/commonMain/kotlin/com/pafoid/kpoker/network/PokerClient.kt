@@ -37,32 +37,39 @@ class PokerClient(private val host: String = "localhost", private val port: Int 
 
     fun connect(scope: CoroutineScope) {
         scope.launch {
-            try {
-                client.webSocket(host = host, port = port, path = "/ws") {
-                    session = this
-                    for (frame in incoming) {
-                        if (frame is Frame.Text) {
-                            val text = frame.readText()
-                            val message = try {
-                                json.decodeFromString<GameMessage>(text)
-                            } catch (e: Exception) {
-                                null
-                            }
+            var connected = false
+            while (!connected && isActive) {
+                try {
+                    client.webSocket(host = host, port = port, path = "/ws") {
+                        connected = true
+                        session = this
+                        println("Connected to server")
+                        for (frame in incoming) {
+                            if (frame is Frame.Text) {
+                                val text = frame.readText()
+                                val message = try {
+                                    json.decodeFromString<GameMessage>(text)
+                                } catch (e: Exception) {
+                                    null
+                                }
 
-                            when (message) {
-                                is GameMessage.StateUpdate -> _gameState.value = message.state
-                                is GameMessage.RoomList -> _rooms.value = message.rooms
-                                is GameMessage.AuthResponse -> _authResponse.emit(message)
-                                is GameMessage.Error -> _error.emit(message.message)
-                                else -> {}
+                                when (message) {
+                                    is GameMessage.StateUpdate -> _gameState.value = message.state
+                                    is GameMessage.RoomList -> _rooms.value = message.rooms
+                                    is GameMessage.AuthResponse -> _authResponse.emit(message)
+                                    is GameMessage.Error -> _error.emit(message.message)
+                                    else -> {}
+                                }
                             }
                         }
                     }
+                } catch (e: Exception) {
+                    println("Connection failed, retrying in 2 seconds... (${e.message})")
+                    delay(2000)
+                } finally {
+                    session = null
+                    connected = false
                 }
-            } catch (e: Exception) {
-                _error.emit("Connection failed: ${e.message}")
-            } finally {
-                session = null
             }
         }
     }
