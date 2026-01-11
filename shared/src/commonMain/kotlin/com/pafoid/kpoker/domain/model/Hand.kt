@@ -1,5 +1,8 @@
 package com.pafoid.kpoker.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class HandType(val rank: Int) {
     HIGH_CARD(1),
     PAIR(2),
@@ -13,6 +16,7 @@ enum class HandType(val rank: Int) {
     ROYAL_FLUSH(10)
 }
 
+@Serializable
 data class Hand(
     val type: HandType,
     val cards: List<Card>, // The 5 cards making the hand, sorted by importance

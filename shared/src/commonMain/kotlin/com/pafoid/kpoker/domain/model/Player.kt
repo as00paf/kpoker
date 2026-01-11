@@ -1,5 +1,8 @@
 package com.pafoid.kpoker.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class Player(
     val id: String,
     val name: String,
@@ -7,5 +10,6 @@ data class Player(
     val holeCards: List<Card> = emptyList(),
     val isFolded: Boolean = false,
     val currentBet: Long = 0,
+    val totalContribution: Long = 0,
     val isAllIn: Boolean = false
 )

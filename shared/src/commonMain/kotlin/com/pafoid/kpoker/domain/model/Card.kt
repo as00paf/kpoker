@@ -1,14 +1,19 @@
 package com.pafoid.kpoker.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class Suit {
     CLUBS, DIAMONDS, HEARTS, SPADES
 }
 
+@Serializable
 enum class Rank(val value: Int) {
     TWO(2), THREE(3), FOUR(4), FIVE(5), SIX(6), SEVEN(7), EIGHT(8), NINE(9), TEN(10),
     JACK(11), QUEEN(12), KING(13), ACE(14)
 }
 
+@Serializable
 data class Card(val rank: Rank, val suit: Suit) {
     override fun toString(): String {
         val r = when (rank) {

@@ -1,5 +1,8 @@
 package com.pafoid.kpoker.domain.model
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 enum class GameStage {
     WAITING,
     PRE_FLOP,
@@ -9,6 +12,7 @@ enum class GameStage {
     SHOWDOWN
 }
 
+@Serializable
 data class GameState(
     val players: List<Player> = emptyList(),
     val board: List<Card> = emptyList(),

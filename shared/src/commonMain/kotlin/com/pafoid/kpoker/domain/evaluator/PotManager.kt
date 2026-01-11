@@ -11,34 +11,33 @@ data class Pot(
 object PotManager {
 
     /**
-     * Calculates the main pot and side pots based on player contributions.
-     * This should be called when a round ends or someone is all-in.
+     * Calculates the main pot and side pots based on player total contributions.
      */
     fun calculatePots(players: List<Player>): List<Pot> {
-        val contributions = players.filter { it.currentBet > 0 }
-            .map { it.id to it.currentBet }
-            .sortedBy { it.second }
+        val participants = players.filter { it.totalContribution > 0 }
+            .sortedBy { it.totalContribution }
 
-        if (contributions.isEmpty()) return emptyList()
+        if (participants.isEmpty()) return emptyList()
 
         val pots = mutableListOf<Pot>()
-        var previousContribution = 0L
+        var lastLevel = 0L
 
-        val activePlayerIds = contributions.map { it.first }.toSet()
-        
-        // This is a simplified version. Real side pots depend on when players went all-in.
-        // For a single round's distribution:
-        val uniqueBets = contributions.map { it.second }.distinct().sorted()
-        
-        for (bet in uniqueBets) {
-            val levelAmount = bet - previousContribution
-            val eligiblePlayers = players.filter { it.currentBet >= bet && !it.isFolded }.map { it.id }.toSet()
+        val uniqueContributions = participants.map { it.totalContribution }.distinct().sorted()
+
+        for (level in uniqueContributions) {
+            val amountPerPlayer = level - lastLevel
+            
+            // Players eligible for this pot level are those who haven't folded AND contributed at least this level
+            val eligiblePlayers = participants.filter { it.totalContribution >= level && !it.isFolded }
+                .map { it.id }.toSet()
             
             if (eligiblePlayers.isNotEmpty()) {
-                val potAmount = levelAmount * players.filter { it.currentBet >= bet }.size
+                // The total amount in this pot level comes from ALL players who contributed at least this much
+                val contributorsCount = participants.filter { it.totalContribution >= level }.size
+                val potAmount = amountPerPlayer * contributorsCount
                 pots.add(Pot(potAmount, eligiblePlayers))
             }
-            previousContribution = bet
+            lastLevel = level
         }
 
         return pots

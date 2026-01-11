@@ -51,16 +51,54 @@ class GameEngineTest {
         engine.addPlayer("p2", "Player 2", 1000)
         
         engine.startNewHand()
-        // p1 (Dealer/SB in heads up? Actually standard is Dealer is SB)
-        // Let's assume my logic is simple: (dealer+1)%size is SB, (dealer+2)%size is BB.
-        // For 2 players: d=0, SB=(1)%2=1, BB=(2)%2=0.
-        // Active: (BB+1)%2 = (0+1)%2 = 1.
-        
+        // Active: p2 (SB) - in my simple 2-player logic SB is (0+1)%2=1
         engine.handleAction("p2", BettingAction.Fold)
         val state = engine.getState()
         
-        // p1 should win the pot
+        // p1 should win the blinds
         assertTrue(state.players[0].chips > 1000)
         assertEquals(GameStage.SHOWDOWN, state.stage)
+    }
+
+    @Test
+    fun testSidePotAllIn() {
+        val engine = GameEngine()
+        // p1: 100, p2: 1000, p3: 1000
+        engine.addPlayer("p1", "Short Stack", 100)
+        engine.addPlayer("p2", "Big Stack 1", 1000)
+        engine.addPlayer("p3", "Big Stack 2", 1000)
+        
+        // Dealer p1(0), SB p2(1), BB p3(2). Active: p1(0)
+        engine.startNewHand()
+        
+        // p1 goes all in for 100
+        engine.handleAction("p1", BettingAction.AllIn) 
+        // p2 calls 100
+        engine.handleAction("p2", BettingAction.Call)
+        // p3 checks (already 20 in, but wait, p3 is BB(20), p1 raised to 100, p3 needs to call 80)
+        engine.handleAction("p3", BettingAction.Call)
+        
+        var state = engine.getState()
+        assertEquals(GameStage.FLOP, state.stage)
+        // Pot should be 300
+        
+        // Flop betting: p2 and p3 bet more
+        engine.handleAction("p2", BettingAction.Raise(200)) // p2 bets 200
+        engine.handleAction("p3", BettingAction.Call) // p3 calls 200
+        
+        // Turn: check check
+        engine.handleAction("p2", BettingAction.Check)
+        engine.handleAction("p3", BettingAction.Check)
+        
+        // River: check check -> Showdown
+        engine.handleAction("p2", BettingAction.Check)
+        engine.handleAction("p3", BettingAction.Check)
+        
+        state = engine.getState()
+        assertEquals(GameStage.SHOWDOWN, state.stage)
+        
+        // Total chips in play: 2100.
+        val totalChips = state.players.sumOf { it.chips }
+        assertEquals(2100, totalChips)
     }
 }
