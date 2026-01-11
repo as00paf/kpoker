@@ -50,6 +50,18 @@ class PokerServerTest {
         // Give server time to send initial room list
         kotlinx.coroutines.delay(200)
 
+        // Register and Login session1
+        session1.incoming.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.Register("Alice", "pass"))))
+        kotlinx.coroutines.delay(100)
+        session1.incoming.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.Login("Alice", "pass"))))
+        
+        // Register and Login session2
+        session2.incoming.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.Register("Bob", "pass"))))
+        kotlinx.coroutines.delay(100)
+        session2.incoming.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.Login("Bob", "pass"))))
+        
+        kotlinx.coroutines.delay(200)
+
         // Create Room
         session1.incoming.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.CreateRoom("Room 1"))))
         
@@ -85,7 +97,7 @@ class PokerServerTest {
         // Try to act with inactive player
         inactiveSession.incoming.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.Action(BettingAction.Check))))
         
-        kotlinx.coroutines.delay(300)
+        kotlinx.coroutines.delay(500)
         
         assertTrue(inactiveSession.sentMessages.any { it.contains("Not your turn") })
 
