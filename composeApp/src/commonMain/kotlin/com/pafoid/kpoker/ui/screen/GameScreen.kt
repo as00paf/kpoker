@@ -10,6 +10,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import com.pafoid.kpoker.domain.model.BettingAction
 import com.pafoid.kpoker.domain.model.GameState
+import com.pafoid.kpoker.ui.component.PokerCard
 import kpoker.composeapp.generated.resources.Res
 import kpoker.composeapp.generated.resources.game_screen_bg
 import org.jetbrains.compose.resources.painterResource
@@ -70,17 +71,15 @@ fun GameScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 state.board.forEach { card ->
-                    // Card component will go here
-                    Card(modifier = Modifier.size(80.dp, 120.dp).padding(4.dp)) {
-                        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                            Text(card.toString())
-                        }
-                    }
+                    PokerCard(card = card, modifier = Modifier.padding(4.dp))
                 }
                 repeat(5 - state.board.size) {
-                    Card(
+                    // Show placeholders or backs
+                    Surface(
                         modifier = Modifier.size(80.dp, 120.dp).padding(4.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        shape = MaterialTheme.shapes.small,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
                     ) {}
                 }
             }
@@ -101,7 +100,7 @@ fun GameScreen(
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("Your Hand: ", style = MaterialTheme.typography.titleLarge)
                             myPlayer.holeCards.forEach { card ->
-                                Text(card.toString() + " ", style = MaterialTheme.typography.titleLarge)
+                                PokerCard(card = card, modifier = Modifier.padding(4.dp).size(60.dp, 90.dp))
                             }
                             Spacer(modifier = Modifier.weight(1f))
                             Text("Chips: ${myPlayer.chips}", style = MaterialTheme.typography.titleLarge)
