@@ -24,6 +24,22 @@ class Room(
     private val json = Json { ignoreUnknownKeys = true }
     private val scope = CoroutineScope(Dispatchers.Default)
 
+    init {
+        startTimeoutCheckLoop()
+    }
+
+    private fun startTimeoutCheckLoop() {
+        scope.launch {
+            while (true) {
+                delay(1000)
+                mutex.withLock {
+                    engine.checkTimeouts()
+                }
+                broadcastState()
+            }
+        }
+    }
+
     suspend fun addPlayer(playerId: String, playerName: String, session: WebSocketSession) = mutex.withLock {
         playerSessions[playerId] = session
         engine.addPlayer(playerId, playerName, 1000)

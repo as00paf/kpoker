@@ -8,6 +8,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.text.font.FontWeight
 import com.pafoid.kpoker.domain.model.BettingAction
 import com.pafoid.kpoker.domain.model.GameState
 import com.pafoid.kpoker.ui.component.PokerCard
@@ -23,6 +25,15 @@ fun GameScreen(
     onLeave: () -> Unit,
     onStartGame: () -> Unit
 ) {
+    var currentTime by remember { mutableStateOf(System.currentTimeMillis()) }
+    
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(100)
+            currentTime = System.currentTimeMillis()
+        }
+    }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(Res.drawable.game_screen_bg),
@@ -42,15 +53,42 @@ fun GameScreen(
                     Text("Leave Game")
                 }
                 
-                Surface(
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
-                    shape = MaterialTheme.shapes.small
-                ) {
-                    Text(
-                        "Pot: ${state.pot}",
-                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                        style = MaterialTheme.typography.headlineMedium
-                    )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        shape = MaterialTheme.shapes.small
+                    ) {
+                        Text(
+                            "Pot: ${state.pot}",
+                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                    }
+                    
+                    // Turn Timer
+                    state.turnStartedAt?.let { startedAt ->
+                        val elapsed = currentTime - startedAt
+                        val remaining = maxOf(0, state.turnTimeoutMillis - elapsed)
+                        val progress = remaining.toFloat() / state.turnTimeoutMillis
+                        
+                        Column(
+                            modifier = Modifier.width(200.dp).padding(top = 8.dp),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier.fillMaxWidth().height(8.dp),
+                                color = if (progress < 0.3f) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                                strokeCap = StrokeCap.Round
+                            )
+                            Text(
+                                text = "${(remaining / 1000)}s remaining",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurface,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
+                    }
                 }
 
                 if (state.stage == com.pafoid.kpoker.domain.model.GameStage.WAITING && state.players.size >= 2) {

@@ -173,21 +173,15 @@ class PokerServer {
 
 
     private suspend fun handleRegister(sessionId: String, msg: GameMessage.Register) {
-
         val (success, result) = authService.register(msg.username, msg.password)
-
         val session = sessions[sessionId] ?: return
-
-        if (success) {
-
-            session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(true, "Registration successful"))))
-
+        if (success && result != null) {
+            authenticatedPlayers[sessionId] = result
+            playerNames[result] = msg.username
+            session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(true, "Registration successful", result))))
         } else {
-
             session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(false, result ?: "Unknown error"))))
-
         }
-
     }
 
 
