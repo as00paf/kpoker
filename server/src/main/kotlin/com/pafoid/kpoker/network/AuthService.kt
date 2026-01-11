@@ -32,6 +32,12 @@ class AuthService {
         false to "Invalid password"
     }
 
+    suspend fun changePassword(userId: String, newPassword: String): Boolean = DatabaseFactory.dbQuery {
+        Users.update({ Users.id eq userId }) {
+            it[Users.passwordHash] = hashPassword(newPassword)
+        } > 0
+    }
+
     private fun hashPassword(password: String): String {
         return "hashed_$password"
     }

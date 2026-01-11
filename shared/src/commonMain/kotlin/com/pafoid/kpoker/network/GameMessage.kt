@@ -52,6 +52,10 @@ sealed class GameMessage {
     data class Action(val action: BettingAction) : GameMessage()
 
     @Serializable
+    @SerialName("change_password")
+    data class ChangePassword(val newPassword: String) : GameMessage()
+
+    @Serializable
     @SerialName("start_game")
     object StartGame : GameMessage()
 

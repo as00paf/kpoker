@@ -8,6 +8,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pafoid.kpoker.domain.model.Settings
 import kpoker.composeapp.generated.resources.Res
@@ -18,8 +19,11 @@ import org.jetbrains.compose.resources.painterResource
 fun SettingsScreen(
     settings: Settings,
     onSettingsChanged: (Settings) -> Unit,
+    onChangePassword: (String) -> Unit,
     onBack: () -> Unit
 ) {
+    var newPassword by remember { mutableStateOf("") }
+
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
             painter = painterResource(Res.drawable.home_screen_bg),
@@ -33,8 +37,9 @@ fun SettingsScreen(
                 .align(Alignment.Center)
                 .width(500.dp)
                 .padding(16.dp),
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-            shape = MaterialTheme.shapes.large
+            color = Color.Black.copy(alpha = 0.85f),
+            shape = MaterialTheme.shapes.large,
+            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f))
         ) {
             Column(
                 modifier = Modifier.padding(32.dp),
@@ -44,7 +49,8 @@ fun SettingsScreen(
                 Text(
                     text = "SETTINGS",
                     style = MaterialTheme.typography.headlineMedium,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.primary,
+                    fontWeight = FontWeight.Bold
                 )
 
                 // Fullscreen Toggle
@@ -53,14 +59,14 @@ fun SettingsScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("Full Screen Mode", style = MaterialTheme.typography.bodyLarge)
+                    Text("Full Screen Mode", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
                     Switch(
                         checked = settings.isFullscreen,
                         onCheckedChange = { onSettingsChanged(settings.copy(isFullscreen = it)) }
                     )
                 }
 
-                Divider(color = Color.Gray.copy(alpha = 0.3f))
+                Divider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
 
                 // Music Volume
                 Column(modifier = Modifier.fillMaxWidth()) {
@@ -68,8 +74,8 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Music Volume", style = MaterialTheme.typography.bodyLarge)
-                        Text("${(settings.musicVolume * 100).toInt()}%")
+                        Text("Music Volume", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                        Text("${(settings.musicVolume * 100).toInt()}%", color = MaterialTheme.colorScheme.primary)
                     }
                     Slider(
                         value = settings.musicVolume,
@@ -84,8 +90,8 @@ fun SettingsScreen(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween
                     ) {
-                        Text("Sound Effects", style = MaterialTheme.typography.bodyLarge)
-                        Text("${(settings.sfxVolume * 100).toInt()}%")
+                        Text("Sound Effects", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
+                        Text("${(settings.sfxVolume * 100).toInt()}%", color = MaterialTheme.colorScheme.primary)
                     }
                     Slider(
                         value = settings.sfxVolume,
@@ -94,13 +100,50 @@ fun SettingsScreen(
                     )
                 }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Divider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
 
-                Button(
-                    onClick = onBack,
-                    modifier = Modifier.fillMaxWidth()
+                // Profile Section
+                Column(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text("Back")
+                    Text("PROFILE", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
+                    
+                    OutlinedTextField(
+                        value = newPassword,
+                        onValueChange = { newPassword = it },
+                        label = { Text("New Password") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            unfocusedLabelColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            focusedTextColor = MaterialTheme.colorScheme.primary,
+                            unfocusedTextColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    
+                    Button(
+                        onClick = {
+                            if (newPassword.isNotBlank()) {
+                                onChangePassword(newPassword)
+                                newPassword = ""
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Change Password")
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(8.dp))
+
+                OutlinedButton(
+                    onClick = onBack,
+                    modifier = Modifier.fillMaxWidth(),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+                ) {
+                    Text("Back", color = MaterialTheme.colorScheme.primary)
                 }
             }
         }

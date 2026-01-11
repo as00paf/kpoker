@@ -1,28 +1,31 @@
 package com.pafoid.kpoker
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.pafoid.kpoker.ui.screen.GameScreen
 import com.pafoid.kpoker.ui.screen.HomeScreen
 import com.pafoid.kpoker.ui.screen.LobbyScreen
+import com.pafoid.kpoker.ui.screen.SettingsScreen
 import org.jetbrains.compose.ui.tooling.preview.Preview
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
 
 val Gold = Color(0xFFFFD700)
 
 @Composable
 @Preview
-fun App() {
+fun App(
+    onFullscreenChanged: (Boolean) -> Unit = {}
+) {
     MaterialTheme(
         colorScheme = darkColorScheme(
             primary = Gold,
@@ -43,14 +46,19 @@ fun App() {
                 }
             }
 
+            // Sync full screen with main.kt
+            LaunchedEffect(viewModel.settings.isFullscreen) {
+                onFullscreenChanged(viewModel.settings.isFullscreen)
+            }
+
             // Auto-navigate to game screen if game state becomes active
             LaunchedEffect(viewModel.gameState) {
-                if (viewModel.gameState != null && viewModel.currentAppScreen == AppScreen.LOBBY) {
+                if (viewModel.gameState != null && viewModel.currentScreen == AppScreen.LOBBY) {
                     viewModel.navigateToGame()
                 }
             }
 
-            when (viewModel.currentAppScreen) {
+            when (viewModel.currentScreen) {
                 AppScreen.HOME -> {
                     HomeScreen(
                         isLoading = viewModel.isLoading,
@@ -64,6 +72,7 @@ fun App() {
                         onCreateRoom = { name -> viewModel.createRoom(name) },
                         onCreateSinglePlayerRoom = { viewModel.createSinglePlayerRoom() },
                         onJoinRoom = { roomId -> viewModel.joinRoom(roomId) },
+                        onSettingsClick = { viewModel.navigateToSettings() },
                         onLogout = { viewModel.logout() }
                     )
                 }
@@ -77,6 +86,14 @@ fun App() {
                             onStartGame = { viewModel.startGame() }
                         )
                     }
+                }
+                AppScreen.SETTINGS -> {
+                    SettingsScreen(
+                        settings = viewModel.settings,
+                        onSettingsChanged = { viewModel.updateSettings(it) },
+                        onChangePassword = { viewModel.changePassword(it) },
+                        onBack = { viewModel.goBack() }
+                    )
                 }
             }
 
@@ -92,5 +109,5 @@ fun App() {
 }
 
 enum class AppScreen {
-    HOME, LOBBY, GAME
+    HOME, LOBBY, GAME, SETTINGS
 }

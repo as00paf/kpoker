@@ -1,45 +1,55 @@
 package com.pafoid.kpoker.audio
 
-import korlibs.audio.sound.*
-import korlibs.io.file.std.*
+import javazoom.jl.player.Player
 import kotlinx.coroutines.*
-import java.io.File
+import java.io.InputStream
 
 class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
-    private var musicChannel: SoundChannel? = null
+    private var musicJob: Job? = null
     private var musicVolume = 0.5f
     private var sfxVolume = 0.7f
 
     override fun playMusic(resourcePath: String, volume: Float, loop: Boolean) {
         musicVolume = volume
-        scope.launch {
-            try {
-                // In a real KMP app, resources are handled differently, but for JVM:
-                val sound = resourcesVfs[resourcePath].readSound()
-                musicChannel?.stop()
-                musicChannel = sound.play(scope, if (loop) InfinitePlaybackTimes else PlaybackTimes(1))
-                musicChannel?.volume = volume.toDouble()
-            } catch (e: Exception) {
-                println("Failed to play music: ${e.message}")
+        musicJob?.cancel()
+        musicJob = scope.launch(Dispatchers.IO) {
+            while (isActive) {
+                try {
+                    val inputStream = getResourceStream(resourcePath)
+                    if (inputStream != null) {
+                        val player = Player(inputStream)
+                        player.play()
+                    } else {
+                        println("Music resource not found: $resourcePath")
+                        break
+                    }
+                } catch (e: Exception) {
+                    println("Error playing music: ${e.message}")
+                    break
+                }
+                if (!loop) break
             }
         }
     }
 
     override fun playSound(resourcePath: String, volume: Float) {
-        scope.launch {
+        scope.launch(Dispatchers.IO) {
             try {
-                val sound = resourcesVfs[resourcePath].readSound()
-                val channel = sound.play(scope)
-                channel.volume = volume.toDouble() * sfxVolume
+                val inputStream = getResourceStream(resourcePath)
+                if (inputStream != null) {
+                    val player = Player(inputStream)
+                    player.play()
+                }
             } catch (e: Exception) {
-                println("Failed to play sound: ${e.message}")
+                println("Error playing sound: ${e.message}")
             }
         }
     }
 
     override fun setMusicVolume(volume: Float) {
         musicVolume = volume
-        musicChannel?.volume = volume.toDouble()
+        // JLayer doesn't support easy volume control mid-stream
+        // In a real app, we'd use a more advanced library or a gain control wrapper
     }
 
     override fun setSfxVolume(volume: Float) {
@@ -47,7 +57,15 @@ class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
     }
 
     override fun stopMusic() {
-        musicChannel?.stop()
+        musicJob?.cancel()
+        musicJob = null
+    }
+
+    private fun getResourceStream(path: String): InputStream? {
+        // Compose resources are usually in the classpath
+        return this::class.java.classLoader.getResourceAsStream(path) ?:
+               this::class.java.classLoader.getResourceAsStream("files/$path") ?:
+               this::class.java.classLoader.getResourceAsStream("drawable/$path")
     }
 }
 

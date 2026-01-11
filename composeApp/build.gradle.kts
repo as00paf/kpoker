@@ -45,8 +45,6 @@ kotlin {
             implementation(compose.materialIconsExtended)
             implementation(libs.androidx.lifecycle.viewmodelCompose)
             implementation(libs.androidx.lifecycle.runtimeCompose)
-            implementation(libs.korlibs.audio)
-            implementation(libs.korlibs.io)
             implementation(projects.shared)
         }
         commonTest.dependencies {
@@ -55,6 +53,7 @@ kotlin {
         jvmMain.dependencies {
             implementation(compose.desktop.currentOs)
             implementation(libs.kotlinx.coroutines)
+            implementation(libs.jlayer)
         }
     }
 }

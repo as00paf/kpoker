@@ -47,7 +47,8 @@ class GameEngine {
             currentMaxBet = 0,
             playersActedThisRound = emptySet(),
             dealerIndex = nextDealerIndex,
-            lastHandResult = null
+            lastHandResult = null,
+            nextHandAt = null
         )
 
         postBlinds()
@@ -293,6 +294,10 @@ class GameEngine {
             pot = 0,
             lastHandResult = HandResult(winners, distribution, playerHands)
         )
+    }
+
+    fun updateNextHandTime(time: Long?) {
+        state = state.copy(nextHandAt = time)
     }
 
     fun getState() = state

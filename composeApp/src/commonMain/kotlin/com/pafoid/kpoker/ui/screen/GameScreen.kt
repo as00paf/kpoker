@@ -61,6 +61,21 @@ fun GameScreen(
                 }
                 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    // Hand Status
+                    Surface(
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
+                        shape = MaterialTheme.shapes.extraSmall,
+                        modifier = Modifier.padding(bottom = 4.dp)
+                    ) {
+                        Text(
+                            text = state.stage.name.replace("_", " "),
+                            style = MaterialTheme.typography.labelLarge,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp),
+                            color = Color.Black,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+
                     Surface(
                         color = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
                         shape = MaterialTheme.shapes.small

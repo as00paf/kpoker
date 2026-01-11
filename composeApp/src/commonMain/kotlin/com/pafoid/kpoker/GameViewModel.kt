@@ -19,7 +19,7 @@ class GameViewModel(private val scope: CoroutineScope) {
     private val client = PokerClient()
     private val audioPlayer = createAudioPlayer(scope)
     
-    var currentScreen by mutableStateOf(Screen.HOME)
+    var currentScreen by mutableStateOf(AppScreen.HOME)
         private set
     
     var myPlayerId by mutableStateOf<String?>(null)
@@ -70,7 +70,7 @@ class GameViewModel(private val scope: CoroutineScope) {
                 isLoading = false
                 if (response.success) {
                     myPlayerId = response.playerId
-                    currentScreen = Screen.LOBBY
+                    currentScreen = AppScreen.LOBBY
                 }
                 _events.emit(response.message)
             }
@@ -129,7 +129,7 @@ class GameViewModel(private val scope: CoroutineScope) {
     fun leaveRoom() {
         scope.launch {
             client.sendMessage(GameMessage.LeaveRoom)
-            currentScreen = Screen.LOBBY
+            currentScreen = AppScreen.LOBBY
             gameState = null
             audioPlayer.playMusic("Home.mp3", settings.musicVolume)
         }
@@ -141,23 +141,29 @@ class GameViewModel(private val scope: CoroutineScope) {
         }
     }
 
+    fun changePassword(newPass: String) {
+        scope.launch {
+            client.sendMessage(GameMessage.ChangePassword(newPass))
+        }
+    }
+
     fun logout() {
         myPlayerId = null
         myUsername = ""
-        currentScreen = Screen.HOME
+        currentScreen = AppScreen.HOME
         gameState = null
         audioPlayer.playMusic("Home.mp3", settings.musicVolume)
     }
     
     fun navigateToGame() {
         if (gameState != null) {
-            currentScreen = Screen.GAME
+            currentScreen = AppScreen.GAME
             audioPlayer.playMusic("Game.mp3", settings.musicVolume)
         }
     }
 
     fun navigateToSettings() {
-        currentScreen = Screen.SETTINGS
+        currentScreen = AppScreen.SETTINGS
     }
 
     fun updateSettings(newSettings: Settings) {
@@ -171,6 +177,6 @@ class GameViewModel(private val scope: CoroutineScope) {
     }
 
     fun goBack() {
-        currentScreen = if (myPlayerId != null) Screen.LOBBY else Screen.HOME
+        currentScreen = if (myPlayerId != null) AppScreen.LOBBY else AppScreen.HOME
     }
 }
