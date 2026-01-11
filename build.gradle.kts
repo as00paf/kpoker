@@ -17,12 +17,25 @@ tasks.register("runAll") {
     
     doLast {
         val isWindows = System.getProperty("os.name").lowercase().contains("win")
-        val gradlew = if (isWindows) "gradlew.bat" else "./gradlew"
+        val gradlew = File(projectDir, if (isWindows) "gradlew.bat" else "gradlew").absolutePath
         
-        println("Starting Server...")
-        ProcessBuilder(gradlew, ":server:run").inheritIO().start()
+        println("Starting Server from: $gradlew")
+        val serverProcess = if (isWindows) {
+            ProcessBuilder("cmd", "/c", gradlew, ":server:run")
+        } else {
+            ProcessBuilder(gradlew, ":server:run")
+        }
+        serverProcess.inheritIO().start()
+        
+        // Wait a bit for server to bind
+        Thread.sleep(3000)
         
         println("Starting Desktop App...")
-        ProcessBuilder(gradlew, ":composeApp:run").inheritIO().start()
+        val appProcess = if (isWindows) {
+            ProcessBuilder("cmd", "/c", gradlew, ":composeApp:run")
+        } else {
+            ProcessBuilder(gradlew, ":composeApp:run")
+        }
+        appProcess.inheritIO().start()
     }
 }
