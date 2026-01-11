@@ -16,10 +16,23 @@ enum class Screen {
     HOME, LOBBY, GAME
 }
 
+import androidx.compose.material3.darkColorScheme
+import androidx.compose.ui.graphics.Color
+
+val Gold = Color(0xFFFFD700)
+
 @Composable
 @Preview
 fun App() {
-    MaterialTheme {
+    MaterialTheme(
+        colorScheme = darkColorScheme(
+            primary = Gold,
+            onPrimary = Color.Black,
+            secondary = Gold,
+            onSecondary = Color.Black,
+            tertiary = Gold
+        )
+    ) {
         val scope = rememberCoroutineScope()
         val snackbarHostState = remember { SnackbarHostState() }
         val viewModel = remember { GameViewModel(scope) }

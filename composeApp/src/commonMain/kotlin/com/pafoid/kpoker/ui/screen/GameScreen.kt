@@ -17,6 +17,9 @@ import kpoker.composeapp.generated.resources.Res
 import kpoker.composeapp.generated.resources.game_screen_bg
 import org.jetbrains.compose.resources.painterResource
 
+import androidx.compose.ui.text.style.TextAlign
+import com.pafoid.kpoker.domain.model.GameStage
+
 @Composable
 fun GameScreen(
     state: GameState,
@@ -84,19 +87,50 @@ fun GameScreen(
                             Text(
                                 text = "${(remaining / 1000)}s remaining",
                                 style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurface,
+                                color = Color.White,
                                 fontWeight = FontWeight.Bold
                             )
                         }
                     }
                 }
 
-                if (state.stage == com.pafoid.kpoker.domain.model.GameStage.WAITING && state.players.size >= 2) {
+                if (state.stage == GameStage.WAITING && state.players.size >= 2) {
                     Button(onClick = onStartGame) {
                         Text("Start Hand")
                     }
                 } else {
                     Spacer(modifier = Modifier.width(100.dp))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // Other Players
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceEvenly
+            ) {
+                state.players.filter { it.id != playerId }.forEach { player ->
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = player.name,
+                            style = MaterialTheme.typography.titleMedium,
+                            color = if (state.activePlayer?.id == player.id) MaterialTheme.colorScheme.primary else Color.White
+                        )
+                        Row {
+                            if (state.stage == GameStage.SHOWDOWN && !player.isFolded) {
+                                player.holeCards.forEach { card ->
+                                    PokerCard(card = card, modifier = Modifier.size(40.dp, 60.dp).padding(2.dp))
+                                }
+                            } else if (!player.isFolded && player.holeCards.isNotEmpty()) {
+                                repeat(2) {
+                                    PokerCard(card = null, modifier = Modifier.size(40.dp, 60.dp).padding(2.dp))
+                                }
+                            }
+                        }
+                        Text("${player.chips} chips", color = Color.LightGray, style = MaterialTheme.typography.labelSmall)
+                        if (player.isFolded) Text("FOLDED", color = Color.Red, style = MaterialTheme.typography.labelSmall)
+                    }
                 }
             }
 
@@ -112,62 +146,126 @@ fun GameScreen(
                     PokerCard(card = card, modifier = Modifier.padding(4.dp))
                 }
                 repeat(5 - state.board.size) {
-                    // Show placeholders or backs
                     Surface(
                         modifier = Modifier.size(80.dp, 120.dp).padding(4.dp),
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        color = Color.Black.copy(alpha = 0.3f),
                         shape = MaterialTheme.shapes.small,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = 0.5f))
+                        border = androidx.compose.foundation.BorderStroke(1.dp, Color.White.copy(alpha = 0.2f))
                     ) {}
                 }
             }
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // Controls
+            // My Hand and Controls
             val myPlayer = state.players.find { it.id == playerId }
             val isMyTurn = state.activePlayer?.id == playerId
 
             if (myPlayer != null) {
                 Surface(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
                     shape = MaterialTheme.shapes.medium
                 ) {
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text("Your Hand: ", style = MaterialTheme.typography.titleLarge)
-                            myPlayer.holeCards.forEach { card ->
-                                PokerCard(card = card, modifier = Modifier.padding(4.dp).size(60.dp, 90.dp))
+                            Column {
+                                Text("YOUR HAND", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                Row {
+                                    myPlayer.holeCards.forEach { card ->
+                                        PokerCard(card = card, modifier = Modifier.padding(4.dp).size(70.dp, 105.dp))
+                                    }
+                                }
                             }
-                            Spacer(modifier = Modifier.weight(1f))
-                            Text("Chips: ${myPlayer.chips}", style = MaterialTheme.typography.titleLarge)
-                        }
+                            Spacer(modifier = Modifier.width(24.dp))
+                            Column {
+                                Text("CHIPS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                Text("${myPlayer.chips}", style = MaterialTheme.typography.headlineSmall)
+                            }
+                            
+                            if (myPlayer.currentBet > 0) {
+                                Spacer(modifier = Modifier.width(24.dp))
+                                Column {
+                                    Text("CURRENT BET", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                    Text("${myPlayer.currentBet}", style = MaterialTheme.typography.headlineSmall)
+                                }
+                            }
 
-                        if (isMyTurn) {
-                            Spacer(modifier = Modifier.height(16.dp))
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                Button(onClick = { onAction(BettingAction.Fold) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                                    Text("Fold")
-                                }
-                                if (myPlayer.currentBet >= state.currentMaxBet) {
-                                    Button(onClick = { onAction(BettingAction.Check) }) {
-                                        Text("Check")
+                            Spacer(modifier = Modifier.weight(1f))
+
+                            if (isMyTurn) {
+                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                    Button(onClick = { onAction(BettingAction.Fold) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                                        Text("Fold")
                                     }
-                                } else {
-                                    Button(onClick = { onAction(BettingAction.Call) }) {
-                                        Text("Call ${state.currentMaxBet - myPlayer.currentBet}")
+                                    if (myPlayer.currentBet >= state.currentMaxBet) {
+                                        Button(onClick = { onAction(BettingAction.Check) }) {
+                                            Text("Check")
+                                        }
+                                    } else {
+                                        Button(onClick = { onAction(BettingAction.Call) }) {
+                                            val toCall = state.currentMaxBet - myPlayer.currentBet
+                                            Text("Call $toCall")
+                                        }
                                     }
-                                }
-                                Button(onClick = { onAction(BettingAction.Raise(state.currentMaxBet + state.minRaise)) }) {
-                                    Text("Raise ${state.currentMaxBet + state.minRaise}")
+                                    val minRaiseTotal = state.currentMaxBet + state.minRaise
+                                    if (myPlayer.chips >= (minRaiseTotal - myPlayer.currentBet)) {
+                                        Button(onClick = { onAction(BettingAction.Raise(minRaiseTotal)) }) {
+                                            Text("Raise to $minRaiseTotal")
+                                        }
+                                    }
                                 }
                             }
                         }
                     }
+                }
+            }
+        }
+
+        // Winner Overlay
+        state.lastHandResult?.let { result ->
+            Surface(
+                modifier = Modifier.align(Alignment.Center).padding(32.dp),
+                color = Color.Black.copy(alpha = 0.9f),
+                shape = MaterialTheme.shapes.large,
+                border = androidx.compose.foundation.BorderStroke(2.dp, Gold)
+            ) {
+                Column(
+                    modifier = Modifier.padding(32.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        text = if (result.winners.size > 1) "SPLIT POT!" else "WINNER!",
+                        style = MaterialTheme.typography.displayMedium,
+                        color = Gold
+                    )
+                    
+                    result.winners.forEach { winnerId ->
+                        val winnerName = state.players.find { it.id == winnerId }?.name ?: "Unknown"
+                        val wonAmount = result.amountWon[winnerId] ?: 0
+                        val handDesc = result.playerHands[winnerId]?.description ?: ""
+                        
+                        Text(
+                            text = "$winnerName won $wonAmount chips",
+                            style = MaterialTheme.typography.headlineSmall,
+                            color = Color.White
+                        )
+                        if (handDesc.isNotBlank()) {
+                            Text(
+                                text = "with $handDesc",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = Color.LightGray
+                            )
+                        }
+                    }
+                    
+                    Text(
+                        text = "Next hand starting soon...",
+                        style = MaterialTheme.typography.labelMedium,
+                        color = Gold.copy(alpha = 0.7f),
+                        modifier = Modifier.padding(top = 16.dp)
+                    )
                 }
             }
         }

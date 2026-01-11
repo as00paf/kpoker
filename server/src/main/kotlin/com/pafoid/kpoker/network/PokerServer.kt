@@ -28,6 +28,8 @@ class PokerServer {
 
     private val json = Json { ignoreUnknownKeys = true }
 
+    private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default)
+
 
 
     suspend fun handleConnection(session: WebSocketSession) {
@@ -272,11 +274,19 @@ class PokerServer {
         }
 
         room.handleAction(playerId, action)
+        
+        if (room.engine.getState().stage == com.pafoid.kpoker.domain.model.GameStage.SHOWDOWN) {
+            scope.launch {
+                delay(5000)
+                room.startGame()
+            }
+        }
     }
 
     private suspend fun handleStartGame(playerId: String) {
         val roomId = playerToRoom[playerId] ?: return
-        rooms[roomId]?.startGame()
+        val room = rooms[roomId] ?: return
+        room.startGame()
     }
 
     private suspend fun handleDisconnect(playerId: String) {
