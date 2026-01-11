@@ -1,5 +1,6 @@
 package com.pafoid.kpoker
 
+import androidx.compose.ui.window.Window
 import androidx.compose.ui.window.WindowPlacement
 import androidx.compose.ui.window.WindowPosition
 import androidx.compose.ui.window.application
@@ -19,6 +20,10 @@ fun main() = application {
         title = "KPoker",
         icon = painterResource(Res.drawable.kpoker_icon)
     ) {
-        App()
+        App(
+            onFullscreenChanged = { isFullscreen ->
+                windowState.placement = if (isFullscreen) WindowPlacement.Fullscreen else WindowPlacement.Floating
+            }
+        )
     }
 }

@@ -3,8 +3,10 @@ package com.pafoid.kpoker
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import com.pafoid.kpoker.audio.createAudioPlayer
 import com.pafoid.kpoker.domain.model.BettingAction
 import com.pafoid.kpoker.domain.model.GameState
+import com.pafoid.kpoker.domain.model.Settings
 import com.pafoid.kpoker.network.GameMessage
 import com.pafoid.kpoker.network.PokerClient
 import com.pafoid.kpoker.network.RoomInfo
@@ -15,6 +17,7 @@ import kotlinx.coroutines.launch
 
 class GameViewModel(private val scope: CoroutineScope) {
     private val client = PokerClient()
+    private val audioPlayer = createAudioPlayer(scope)
     
     var currentScreen by mutableStateOf(Screen.HOME)
         private set
@@ -31,6 +34,9 @@ class GameViewModel(private val scope: CoroutineScope) {
     var rooms by mutableStateOf<List<RoomInfo>>(emptyList())
         private set
 
+    var settings by mutableStateOf(Settings())
+        private set
+
     var isLoading by mutableStateOf(false)
         private set
 
@@ -40,8 +46,19 @@ class GameViewModel(private val scope: CoroutineScope) {
     init {
         client.connect(scope)
         
+        // Initial music
+        audioPlayer.playMusic("Home.mp3", settings.musicVolume)
+
         scope.launch {
-            client.gameState.collect { gameState = it }
+            client.gameState.collect { 
+                val oldState = gameState
+                gameState = it
+                
+                // If we just entered a game, switch music
+                if (oldState == null && it != null) {
+                    audioPlayer.playMusic("Game.mp3", settings.musicVolume)
+                }
+            }
         }
         
         scope.launch {
@@ -114,6 +131,7 @@ class GameViewModel(private val scope: CoroutineScope) {
             client.sendMessage(GameMessage.LeaveRoom)
             currentScreen = Screen.LOBBY
             gameState = null
+            audioPlayer.playMusic("Home.mp3", settings.musicVolume)
         }
     }
 
@@ -128,11 +146,31 @@ class GameViewModel(private val scope: CoroutineScope) {
         myUsername = ""
         currentScreen = Screen.HOME
         gameState = null
+        audioPlayer.playMusic("Home.mp3", settings.musicVolume)
     }
     
     fun navigateToGame() {
         if (gameState != null) {
             currentScreen = Screen.GAME
+            audioPlayer.playMusic("Game.mp3", settings.musicVolume)
         }
+    }
+
+    fun navigateToSettings() {
+        currentScreen = Screen.SETTINGS
+    }
+
+    fun updateSettings(newSettings: Settings) {
+        if (newSettings.musicVolume != settings.musicVolume) {
+            audioPlayer.setMusicVolume(newSettings.musicVolume)
+        }
+        if (newSettings.sfxVolume != settings.sfxVolume) {
+            audioPlayer.setSfxVolume(newSettings.sfxVolume)
+        }
+        settings = newSettings
+    }
+
+    fun goBack() {
+        currentScreen = if (myPlayerId != null) Screen.LOBBY else Screen.HOME
     }
 }

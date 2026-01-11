@@ -10,13 +10,6 @@ import com.pafoid.kpoker.ui.screen.GameScreen
 import com.pafoid.kpoker.ui.screen.HomeScreen
 import com.pafoid.kpoker.ui.screen.LobbyScreen
 import org.jetbrains.compose.ui.tooling.preview.Preview
-
-val Gold = Color(0xFFFFD700)
-
-enum class Screen {
-    HOME, LOBBY, GAME
-}
-
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -24,6 +17,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+
+val Gold = Color(0xFFFFD700)
 
 @Composable
 @Preview
@@ -50,20 +45,20 @@ fun App() {
 
             // Auto-navigate to game screen if game state becomes active
             LaunchedEffect(viewModel.gameState) {
-                if (viewModel.gameState != null && viewModel.currentScreen == Screen.LOBBY) {
+                if (viewModel.gameState != null && viewModel.currentAppScreen == AppScreen.LOBBY) {
                     viewModel.navigateToGame()
                 }
             }
 
-            when (viewModel.currentScreen) {
-                Screen.HOME -> {
+            when (viewModel.currentAppScreen) {
+                AppScreen.HOME -> {
                     HomeScreen(
                         isLoading = viewModel.isLoading,
                         onLogin = { user, pass -> viewModel.login(user, pass) },
                         onRegister = { user, pass -> viewModel.register(user, pass) }
                     )
                 }
-                Screen.LOBBY -> {
+                AppScreen.LOBBY -> {
                     LobbyScreen(
                         rooms = viewModel.rooms,
                         onCreateRoom = { name -> viewModel.createRoom(name) },
@@ -72,7 +67,7 @@ fun App() {
                         onLogout = { viewModel.logout() }
                     )
                 }
-                Screen.GAME -> {
+                AppScreen.GAME -> {
                     viewModel.gameState?.let { state ->
                         GameScreen(
                             state = state,
@@ -94,4 +89,8 @@ fun App() {
             )
         }
     }
+}
+
+enum class AppScreen {
+    HOME, LOBBY, GAME
 }

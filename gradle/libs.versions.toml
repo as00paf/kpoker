@@ -17,8 +17,11 @@ kotlinx-coroutines = "1.10.2"
 kotlinx-serialization = "1.8.0"
 ktor = "3.3.3"
 logback = "1.5.22"
+korlibs = "5.4.0"
 
 [libraries]
+korlibs-audio = { module = "com.soywiz.korlibs.korau:korau", version.ref = "korlibs" }
+korlibs-io = { module = "com.soywiz.korlibs.korio:korio", version.ref = "korlibs" }
 kotlin-test = { module = "org.jetbrains.kotlin:kotlin-test", version.ref = "kotlin" }
 kotlin-testJunit = { module = "org.jetbrains.kotlin:kotlin-test-junit", version.ref = "kotlin" }
 junit = { module = "junit:junit", version.ref = "junit" }

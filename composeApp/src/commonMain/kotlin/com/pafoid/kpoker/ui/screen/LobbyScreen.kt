@@ -21,6 +21,7 @@ fun LobbyScreen(
     onCreateRoom: (String) -> Unit,
     onCreateSinglePlayerRoom: () -> Unit,
     onJoinRoom: (String) -> Unit,
+    onSettingsClick: () -> Unit,
     onLogout: () -> Unit
 ) {
     var newRoomName by remember { mutableStateOf("") }
@@ -54,6 +55,9 @@ fun LobbyScreen(
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                     ) {
                         Text("Play vs The House")
+                    }
+                    Button(onClick = onSettingsClick) {
+                        Text("Settings")
                     }
                     Button(onClick = onLogout) {
                         Text("Logout")
