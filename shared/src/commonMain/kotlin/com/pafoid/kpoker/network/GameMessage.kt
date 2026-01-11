@@ -20,6 +20,10 @@ sealed class GameMessage {
     data class Action(val action: BettingAction) : GameMessage()
 
     @Serializable
+    @SerialName("start_game")
+    object StartGame : GameMessage()
+
+    @Serializable
     @SerialName("error")
     data class Error(val message: String) : GameMessage()
 }

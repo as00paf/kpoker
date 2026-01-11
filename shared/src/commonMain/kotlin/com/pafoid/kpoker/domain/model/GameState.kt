@@ -13,6 +13,13 @@ enum class GameStage {
 }
 
 @Serializable
+data class HandResult(
+    val winners: List<String>,
+    val amountWon: Map<String, Long>,
+    val playerHands: Map<String, Hand> = emptyMap()
+)
+
+@Serializable
 data class GameState(
     val players: List<Player> = emptyList(),
     val board: List<Card> = emptyList(),
@@ -25,7 +32,8 @@ data class GameState(
     val currentMaxBet: Long = 0,
     val lastRaiserIndex: Int = -1,
     val minRaise: Long = 20,
-    val playersActedThisRound: Set<String> = emptySet()
+    val playersActedThisRound: Set<String> = emptySet(),
+    val lastHandResult: HandResult? = null
 ) {
     val activePlayer: Player? get() = if (activePlayerIndex in players.indices) players[activePlayerIndex] else null
 }
