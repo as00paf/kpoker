@@ -8,6 +8,22 @@ import kotlinx.serialization.SerialName
 @Serializable
 sealed class GameMessage {
     @Serializable
+    @SerialName("create_room")
+    data class CreateRoom(val roomName: String) : GameMessage()
+
+    @Serializable
+    @SerialName("join_room")
+    data class JoinRoom(val roomId: String, val playerName: String) : GameMessage()
+
+    @Serializable
+    @SerialName("leave_room")
+    object LeaveRoom : GameMessage()
+
+    @Serializable
+    @SerialName("room_list")
+    data class RoomList(val rooms: List<RoomInfo>) : GameMessage()
+
+    @Serializable
     @SerialName("join")
     data class Join(val playerName: String) : GameMessage()
 
@@ -27,3 +43,11 @@ sealed class GameMessage {
     @SerialName("error")
     data class Error(val message: String) : GameMessage()
 }
+
+@Serializable
+data class RoomInfo(
+    val id: String,
+    val name: String,
+    val playerCount: Int,
+    val isStarted: Boolean
+)

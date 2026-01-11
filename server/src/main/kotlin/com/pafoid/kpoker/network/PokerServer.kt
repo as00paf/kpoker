@@ -1,11 +1,8 @@
 package com.pafoid.kpoker.network
 
-import com.pafoid.kpoker.domain.engine.GameEngine
 import com.pafoid.kpoker.domain.model.BettingAction
-import com.pafoid.kpoker.domain.model.GameStage
 import io.ktor.server.websocket.*
 import io.ktor.websocket.*
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
@@ -14,110 +11,96 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class PokerServer {
-    private val engine = GameEngine()
     private val sessions = ConcurrentHashMap<String, DefaultWebSocketServerSession>()
-    private val playerToSession = ConcurrentHashMap<String, String>() // PlayerID to SessionID
+    private val rooms = ConcurrentHashMap<String, Room>()
+    private val playerToRoom = ConcurrentHashMap<String, String>() // PlayerID to RoomID
+    private val playerNames = ConcurrentHashMap<String, String>()
     private val mutex = Mutex()
     private val json = Json { ignoreUnknownKeys = true }
 
     suspend fun handleConnection(session: DefaultWebSocketServerSession) {
-        val sessionId = UUID.randomUUID().toString()
-        var boundPlayerId: String? = null
-        sessions[sessionId] = session
+        val playerId = UUID.randomUUID().toString()
+        sessions[playerId] = session
 
         try {
+            // Initial send room list
+            sendRoomList(session)
+
             for (frame in session.incoming) {
                 if (frame is Frame.Text) {
                     val text = frame.readText()
                     val message = try {
                         json.decodeFromString<GameMessage>(text)
-                    } catch (e: Exception) {
-                        null
-                    }
+                    } catch (e: Exception) { null }
 
                     when (message) {
-                        is GameMessage.Join -> {
-                            boundPlayerId = sessionId // In this simple version, PlayerID = SessionID
-                            handleJoin(sessionId, message.playerName)
-                        }
-                        is GameMessage.Action -> {
-                            if (boundPlayerId != null) handleAction(boundPlayerId, message)
-                        }
-                        is GameMessage.StartGame -> handleStartGame()
-                        else -> {
-                            session.send(Frame.Text(json.encodeToString(GameMessage.Error("Invalid message"))))
-                        }
+                        is GameMessage.CreateRoom -> handleCreateRoom(playerId, message.roomName)
+                        is GameMessage.JoinRoom -> handleJoinRoom(playerId, message.roomId, message.playerName)
+                        is GameMessage.LeaveRoom -> handleLeaveRoom(playerId)
+                        is GameMessage.Action -> handleAction(playerId, message.action)
+                        is GameMessage.StartGame -> handleStartGame(playerId)
+                        else -> {}
                     }
                 }
             }
         } finally {
-            sessions.remove(sessionId)
-            if (boundPlayerId != null) {
-                handleDisconnect(boundPlayerId)
-            }
+            handleDisconnect(playerId)
         }
     }
 
-    private suspend fun handleJoin(playerId: String, playerName: String) = mutex.withLock {
-        engine.addPlayer(playerId, playerName, 1000)
-        broadcastState()
+    private suspend fun handleCreateRoom(playerId: String, name: String) = mutex.withLock {
+        val roomId = UUID.randomUUID().toString()
+        val room = Room(roomId, name)
+        rooms[roomId] = room
+        broadcastRoomList()
     }
 
-    private suspend fun handleStartGame() = mutex.withLock {
-        if (engine.getState().stage == GameStage.WAITING && engine.getState().players.size >= 2) {
-            engine.startNewHand()
-            broadcastState()
-        }
+    private suspend fun handleJoinRoom(playerId: String, roomId: String, playerName: String) = mutex.withLock {
+        val room = rooms[roomId] ?: return@withLock
+        playerNames[playerId] = playerName
+        playerToRoom[playerId] = roomId
+        room.addPlayer(playerId, playerName, sessions[playerId]!!)
+        broadcastRoomList()
     }
 
-    private suspend fun handleAction(playerId: String, actionMsg: GameMessage.Action) = mutex.withLock {
-        engine.handleAction(playerId, actionMsg.action)
-        broadcastState()
+    private suspend fun handleLeaveRoom(playerId: String) = mutex.withLock {
+        val roomId = playerToRoom.remove(playerId) ?: return@withLock
+        rooms[roomId]?.removePlayer(playerId)
+        broadcastRoomList()
+    }
+
+    private suspend fun handleAction(playerId: String, action: BettingAction) {
+        val roomId = playerToRoom[playerId] ?: return
+        val room = rooms[roomId] ?: return
         
-        if (engine.getState().stage == GameStage.SHOWDOWN) {
-            // Hand finished, schedule next hand
-            scheduleNextHand()
+        // Validation: Is it this player's turn?
+        val state = room.engine.getState()
+        if (state.activePlayer?.id != playerId) {
+            sessions[playerId]?.send(Frame.Text(json.encodeToString(GameMessage.Error("Not your turn"))))
+            return
         }
+
+        room.handleAction(playerId, action)
     }
 
-    private suspend fun handleDisconnect(playerId: String) = mutex.withLock {
-        // If it's their turn, fold them
-        if (engine.getState().activePlayerIndex != -1) {
-            val activePlayer = engine.getState().activePlayer
-            if (activePlayer?.id == playerId) {
-                engine.handleAction(playerId, BettingAction.Fold)
-                broadcastState()
-            }
-        }
-        // In a real app, we might keep them in the game but auto-fold until they reconnect or time out
+    private suspend fun handleStartGame(playerId: String) {
+        val roomId = playerToRoom[playerId] ?: return
+        rooms[roomId]?.startGame()
     }
 
-    private suspend fun scheduleNextHand() {
-        // We shouldn't hold the mutex while delaying, so we'll launch a new coroutine or handle carefully
-        // But for this simple implementation, let's just wait then start
-        kotlinx.coroutines.GlobalScope.let { 
-            // Better to use a proper scope, but this is a CLI server
-        }
-        
-        // Actually, let's just provide a manual start or a simple delay
-        // We'll use a separate check to see if we should start
-        delay(5000) // Wait 5 seconds for players to see the result
-        mutex.withLock {
-            if (engine.getState().stage == GameStage.SHOWDOWN) {
-                engine.startNewHand()
-                broadcastState()
-            }
-        }
+    private suspend fun handleDisconnect(playerId: String) {
+        handleLeaveRoom(playerId)
+        sessions.remove(playerId)
     }
 
-    private suspend fun broadcastState() {
-        val state = engine.getState()
-        val message = json.encodeToString(GameMessage.StateUpdate(state))
-        sessions.values.forEach { session ->
-            try {
-                session.send(Frame.Text(message))
-            } catch (e: Exception) {
-            }
-        }
+    private suspend fun sendRoomList(session: DefaultWebSocketServerSession) {
+        val info = rooms.values.map { it.getInfo() }
+        session.send(Frame.Text(json.encodeToString(GameMessage.RoomList(info))))
+    }
+
+    private suspend fun broadcastRoomList() {
+        val info = rooms.values.map { it.getInfo() }
+        val msg = json.encodeToString(GameMessage.RoomList(info))
+        sessions.values.forEach { it.send(Frame.Text(msg)) }
     }
 }
