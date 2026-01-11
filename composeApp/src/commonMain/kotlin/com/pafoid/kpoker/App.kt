@@ -22,86 +22,45 @@ fun App() {
     MaterialTheme {
         val scope = rememberCoroutineScope()
         val snackbarHostState = remember { SnackbarHostState() }
-        val client = remember { PokerClient() }
-        
-        var currentScreen by remember { mutableStateOf(Screen.HOME) }
-        var myPlayerId by remember { mutableStateOf<String?>(null) }
-        var myUsername by remember { mutableStateOf("") }
-        
-        val gameState by client.gameState.collectAsState()
-        val rooms by client.rooms.collectAsState()
+        val viewModel = remember { GameViewModel(scope) }
 
         LaunchedEffect(Unit) {
-            client.connect(this)
-            
-            launch {
-                client.authResponse.collect { response ->
-                    if (response.success) {
-                        myPlayerId = response.playerId
-                        currentScreen = Screen.LOBBY
-                    }
-                    snackbarHostState.showSnackbar(response.message)
-                }
-            }
-
-            launch {
-                client.error.collect { error ->
-                    snackbarHostState.showSnackbar(error)
-                }
+            viewModel.events.collect { event ->
+                snackbarHostState.showSnackbar(event)
             }
         }
 
         // Auto-navigate to game screen if game state becomes active
-        LaunchedEffect(gameState) {
-            if (gameState != null && currentScreen == Screen.LOBBY) {
-                currentScreen = Screen.GAME
+        LaunchedEffect(viewModel.gameState) {
+            if (viewModel.gameState != null && viewModel.currentScreen == Screen.LOBBY) {
+                viewModel.navigateToGame()
             }
         }
 
-        when (currentScreen) {
+        when (viewModel.currentScreen) {
             Screen.HOME -> {
                 HomeScreen(
-                    onLogin = { user, pass ->
-                        myUsername = user
-                        scope.launch { client.sendMessage(GameMessage.Login(user, pass)) }
-                    },
-                    onRegister = { user, pass ->
-                        myUsername = user
-                        scope.launch { client.sendMessage(GameMessage.Register(user, pass)) }
-                    }
+                    isLoading = viewModel.isLoading,
+                    onLogin = { user, pass -> viewModel.login(user, pass) },
+                    onRegister = { user, pass -> viewModel.register(user, pass) }
                 )
             }
             Screen.LOBBY -> {
                 LobbyScreen(
-                    rooms = rooms,
-                    onCreateRoom = { name ->
-                        scope.launch { client.sendMessage(GameMessage.CreateRoom(name)) }
-                    },
-                    onJoinRoom = { roomId ->
-                        scope.launch { client.sendMessage(GameMessage.JoinRoom(roomId, myUsername)) }
-                    },
-                    onLogout = {
-                        myPlayerId = null
-                        myUsername = ""
-                        currentScreen = Screen.HOME
-                    }
+                    rooms = viewModel.rooms,
+                    onCreateRoom = { name -> viewModel.createRoom(name) },
+                    onJoinRoom = { roomId -> viewModel.joinRoom(roomId) },
+                    onLogout = { viewModel.logout() }
                 )
             }
             Screen.GAME -> {
-                gameState?.let { state ->
+                viewModel.gameState?.let { state ->
                     GameScreen(
                         state = state,
-                        playerId = myPlayerId ?: "",
-                        onAction = { action ->
-                            scope.launch { client.sendMessage(GameMessage.Action(action)) }
-                        },
-                        onLeave = {
-                            scope.launch { client.sendMessage(GameMessage.LeaveRoom) }
-                            currentScreen = Screen.LOBBY
-                        },
-                        onStartGame = {
-                            scope.launch { client.sendMessage(GameMessage.StartGame) }
-                        }
+                        playerId = viewModel.myPlayerId ?: "",
+                        onAction = { action -> viewModel.performAction(action) },
+                        onLeave = { viewModel.leaveRoom() },
+                        onStartGame = { viewModel.startGame() }
                     )
                 }
             }

@@ -15,6 +15,7 @@ import org.jetbrains.compose.resources.painterResource
 
 @Composable
 fun HomeScreen(
+    isLoading: Boolean,
     onLogin: (String, String) -> Unit,
     onRegister: (String, String) -> Unit
 ) {
@@ -53,7 +54,8 @@ fun HomeScreen(
                     onValueChange = { username = it },
                     label = { Text("Username") },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isLoading
                 )
 
                 OutlinedTextField(
@@ -62,24 +64,29 @@ fun HomeScreen(
                     label = { Text("Password") },
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = PasswordVisualTransformation(),
-                    singleLine = true
+                    singleLine = true,
+                    enabled = !isLoading
                 )
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Button(
-                        onClick = { onLogin(username, password) },
-                        modifier = Modifier.weight(1f)
+                if (isLoading) {
+                    CircularProgressIndicator(modifier = Modifier.size(48.dp))
+                } else {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text("Login")
-                    }
-                    OutlinedButton(
-                        onClick = { onRegister(username, password) },
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text("Register")
+                        Button(
+                            onClick = { onLogin(username, password) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Login")
+                        }
+                        OutlinedButton(
+                            onClick = { onRegister(username, password) },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            Text("Register")
+                        }
                     }
                 }
             }
