@@ -24,7 +24,8 @@ val Gold = Color(0xFFFFD700)
 @Composable
 @Preview
 fun App(
-    onFullscreenChanged: (Boolean) -> Unit = {}
+    onFullscreenChanged: (Boolean) -> Unit = {},
+    onQuit: () -> Unit = {}
 ) {
     MaterialTheme(
         colorScheme = darkColorScheme(
@@ -63,7 +64,8 @@ fun App(
                     HomeScreen(
                         isLoading = viewModel.isLoading,
                         onLogin = { user, pass -> viewModel.login(user, pass) },
-                        onRegister = { user, pass -> viewModel.register(user, pass) }
+                        onRegister = { user, pass -> viewModel.register(user, pass) },
+                        onQuit = onQuit
                     )
                 }
                 AppScreen.LOBBY -> {

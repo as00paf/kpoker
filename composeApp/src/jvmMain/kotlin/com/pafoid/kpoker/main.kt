@@ -23,7 +23,8 @@ fun main() = application {
         App(
             onFullscreenChanged = { isFullscreen ->
                 windowState.placement = if (isFullscreen) WindowPlacement.Fullscreen else WindowPlacement.Floating
-            }
+            },
+            onQuit = ::exitApplication
         )
     }
 }

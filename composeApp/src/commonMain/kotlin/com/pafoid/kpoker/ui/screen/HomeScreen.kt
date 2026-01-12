@@ -21,7 +21,8 @@ import org.jetbrains.compose.resources.painterResource
 fun HomeScreen(
     isLoading: Boolean,
     onLogin: (String, String) -> Unit,
-    onRegister: (String, String) -> Unit
+    onRegister: (String, String) -> Unit,
+    onQuit: () -> Unit
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
@@ -95,6 +96,15 @@ fun HomeScreen(
                         ) {
                             Text("Register")
                         }
+                    }
+                    
+                    OutlinedButton(
+                        onClick = onQuit,
+                        modifier = Modifier.fillMaxWidth(),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                    ) {
+                        Text("Quit Game")
                     }
                 }
             }
