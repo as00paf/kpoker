@@ -2,8 +2,11 @@ package com.pafoid.kpoker.audio
 
 import javazoom.jl.decoder.Bitstream
 import javazoom.jl.decoder.Decoder
+import javazoom.jl.decoder.SampleBuffer
 import kotlinx.coroutines.*
 import java.io.InputStream
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import javax.sound.sampled.*
 
 class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
@@ -24,7 +27,7 @@ class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
             while (isActive) {
                 try {
                     val inputStream = getResourceStream(resourcePath) ?: break
-                    playMp3WithVolume(inputStream, musicVolume, true)
+                    playMp3WithVolume(inputStream, musicVolume, true, this)
                 } catch (e: Exception) {
                     println("Error playing music: ${e.message}")
                     break
@@ -38,25 +41,26 @@ class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
         scope.launch(Dispatchers.IO) {
             try {
                 val inputStream = getResourceStream(resourcePath) ?: return@launch
-                playMp3WithVolume(inputStream, volume * sfxVolume, false)
+                playMp3WithVolume(inputStream, volume * sfxVolume, false, this)
             } catch (e: Exception) {
                 println("Error playing sound: ${e.message}")
             }
         }
     }
 
-    private fun playMp3WithVolume(inputStream: InputStream, volume: Float, isMusic: Boolean) {
+    private fun playMp3WithVolume(inputStream: InputStream, volume: Float, isMusic: Boolean, playScope: CoroutineScope) {
         try {
             val bitstream = Bitstream(inputStream)
             val decoder = Decoder()
             var line: SourceDataLine? = null
             
-            while (isActive) {
+            while (playScope.isActive) {
                 val frame = bitstream.readFrame() ?: break
-                val sampleBuffer = decoder.decodeFrame(frame, bitstream) as javazoom.jl.decoder.SampleBuffer
+                val sampleBuffer = decoder.decodeFrame(frame, bitstream) as SampleBuffer
                 
                 if (line == null) {
-                    val format = AudioFormat(sampleBuffer.sampleRate.toFloat(), 16, sampleBuffer.channelCount, true, false)
+                    // Standard MP3 sample rate is usually 44100
+                    val format = AudioFormat(44100f, 16, 2, true, false)
                     val info = DataLine.Info(SourceDataLine::class.java, format)
                     line = AudioSystem.getLine(info) as SourceDataLine
                     line.open(format)
@@ -67,8 +71,8 @@ class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
                 setLineVolume(line, volume)
                 
                 val pcm = sampleBuffer.buffer
-                val pcmBytes = java.nio.ByteBuffer.allocate(pcm.size * 2).apply {
-                    order(java.nio.ByteOrder.LITTLE_ENDIAN)
+                val pcmBytes = ByteBuffer.allocate(pcm.size * 2).apply {
+                    order(ByteOrder.LITTLE_ENDIAN)
                     asShortBuffer().put(pcm)
                 }.array()
                 
@@ -87,7 +91,6 @@ class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
         try {
             if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
                 val gainControl = line.getControl(FloatControl.Type.MASTER_GAIN) as FloatControl
-                // Convert 0.0-1.0 to decibels (-80.0 to 6.0)
                 val dB = (Math.log10(maxOf(volume.toDouble(), 0.0001)) * 20.0).toFloat()
                 gainControl.value = maxOf(minOf(dB, gainControl.maximum), gainControl.minimum)
             }
@@ -105,6 +108,7 @@ class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
 
     override fun stopMusic() {
         musicJob?.cancel()
+        musicJob = null
         musicLine?.stop()
         musicLine?.close()
         musicLine = null
