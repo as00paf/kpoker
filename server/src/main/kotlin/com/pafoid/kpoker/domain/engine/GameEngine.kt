@@ -32,10 +32,11 @@ class GameEngine {
                     isFolded = false,
                     currentBet = 0,
                     totalContribution = 0,
-                    isAllIn = false
+                    isAllIn = false,
+                    lastAction = null
                 )
             } else {
-                player.copy(isFolded = true, holeCards = emptyList(), currentBet = 0, totalContribution = 0)
+                player.copy(isFolded = true, holeCards = emptyList(), currentBet = 0, totalContribution = 0, lastAction = null)
             }
         }
         
@@ -115,19 +116,29 @@ class GameEngine {
         if (playerIndex != state.activePlayerIndex) return
 
         val player = state.players[playerIndex]
+        var actionText = ""
         
         when (action) {
             is BettingAction.Fold -> {
                 val newPlayers = state.players.toMutableList()
-                newPlayers[playerIndex] = player.copy(isFolded = true)
+                newPlayers[playerIndex] = player.copy(isFolded = true, lastAction = "FOLD")
                 state = state.copy(players = newPlayers)
+                actionText = "FOLD"
             }
             is BettingAction.Check -> {
                 if (player.currentBet < state.currentMaxBet) return 
+                val newPlayers = state.players.toMutableList()
+                newPlayers[playerIndex] = player.copy(lastAction = "CHECK")
+                state = state.copy(players = newPlayers)
+                actionText = "CHECK"
             }
             is BettingAction.Call -> {
                 val callAmount = state.currentMaxBet - player.currentBet
                 updatePlayerBet(playerIndex, callAmount)
+                val newPlayers = state.players.toMutableList()
+                newPlayers[playerIndex] = state.players[playerIndex].copy(lastAction = "CALL")
+                state = state.copy(players = newPlayers)
+                actionText = "CALL"
             }
             is BettingAction.Raise -> {
                 val totalBet = action.amount
@@ -137,16 +148,27 @@ class GameEngine {
                 
                 val newMinRaise = totalBet - state.currentMaxBet
                 updatePlayerBet(playerIndex, raiseAmount)
+                
+                val newPlayers = state.players.toMutableList()
+                newPlayers[playerIndex] = state.players[playerIndex].copy(lastAction = "RAISE")
+                state = state.copy(players = newPlayers)
+                
                 state = state.copy(
                     currentMaxBet = totalBet,
                     minRaise = newMinRaise,
                     lastRaiserIndex = playerIndex
                 )
+                actionText = "RAISE"
             }
             is BettingAction.AllIn -> {
                 val allInAmount = player.chips
                 val totalBet = player.currentBet + allInAmount
                 updatePlayerBet(playerIndex, allInAmount)
+                
+                val newPlayers = state.players.toMutableList()
+                newPlayers[playerIndex] = state.players[playerIndex].copy(lastAction = "ALL-IN")
+                state = state.copy(players = newPlayers)
+
                 if (totalBet > state.currentMaxBet) {
                     val newMinRaise = maxOf(state.minRaise, totalBet - state.currentMaxBet)
                     state = state.copy(
@@ -155,6 +177,7 @@ class GameEngine {
                         lastRaiserIndex = playerIndex
                     )
                 }
+                actionText = "ALL-IN"
             }
         }
 
@@ -213,19 +236,23 @@ class GameEngine {
     }
 
     private fun isBettingRoundOver(): Boolean {
-        val activeCanAct = state.players.filter { !it.isFolded && !it.isAllIn }
+        val activeNotFolded = state.players.filter { !it.isFolded }
+        val activeCanAct = activeNotFolded.filter { !it.isAllIn }
         
-        if (activeCanAct.isEmpty()) return true
+        // If 0 or 1 player can still act, it's over if all bets match (or they are all-in)
+        if (activeCanAct.size <= 1) {
+            return activeNotFolded.all { it.isAllIn || it.currentBet == state.currentMaxBet }
+        }
         
         val allActed = activeCanAct.all { state.playersActedThisRound.contains(it.id) }
-        val betsMatch = state.players.filter { !it.isFolded }.all { it.isAllIn || it.currentBet == state.currentMaxBet }
+        val betsMatch = activeNotFolded.all { it.isAllIn || it.currentBet == state.currentMaxBet }
 
         return allActed && betsMatch
     }
 
     private fun collectBetsIntoPot() {
         val roundPot = state.players.sumOf { it.currentBet }
-        val resetPlayers = state.players.map { it.copy(currentBet = 0) }
+        val resetPlayers = state.players.map { it.copy(currentBet = 0, lastAction = null) }
         state = state.copy(
             players = resetPlayers,
             pot = state.pot + roundPot,

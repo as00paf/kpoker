@@ -21,8 +21,12 @@ sealed class GameMessage {
     data class Login(val username: String, val password: String) : GameMessage()
 
     @Serializable
+    @SerialName("logout")
+    object Logout : GameMessage()
+
+    @Serializable
     @SerialName("auth_response")
-    data class AuthResponse(val success: Boolean, val message: String, val playerId: String? = null) : GameMessage()
+    data class AuthResponse(val success: Boolean, val message: String, val playerId: String? = null, val bankroll: Long? = null) : GameMessage()
 
     @Serializable
     @SerialName("create_room")

@@ -10,6 +10,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import com.pafoid.kpoker.domain.model.Language
 import com.pafoid.kpoker.domain.model.Settings
 import com.pafoid.kpoker.network.LocalizationService
@@ -69,11 +72,10 @@ fun SettingsScreen(
                     modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                TabRow(
+                PrimaryTabRow(
                     selectedTabIndex = selectedTabIndex,
                     containerColor = Color.Transparent,
-                    contentColor = MaterialTheme.colorScheme.primary,
-                    divider = {}
+                    contentColor = MaterialTheme.colorScheme.primary
                 ) {
                     tabs.forEachIndexed { index, title ->
                         Tab(

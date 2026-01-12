@@ -11,5 +11,6 @@ data class Player(
     val isFolded: Boolean = false,
     val currentBet: Long = 0,
     val totalContribution: Long = 0,
-    val isAllIn: Boolean = false
+    val isAllIn: Boolean = false,
+    val lastAction: String? = null
 )

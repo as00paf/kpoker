@@ -37,6 +37,9 @@ class GameViewModel(private val scope: CoroutineScope) {
     var rememberMe by mutableStateOf(settingsManager.rememberMe)
         private set
 
+    var myBankroll by mutableStateOf<Long?>(null) // New state for player bankroll
+        private set
+
     var gameState by mutableStateOf<GameState?>(null)
         private set
 
@@ -52,6 +55,8 @@ class GameViewModel(private val scope: CoroutineScope) {
     var isLoading by mutableStateOf(false)
         private set
 
+    private var isLeaving = false
+
     private val _events = MutableSharedFlow<String>()
     val events = _events.asSharedFlow()
 
@@ -62,11 +67,29 @@ class GameViewModel(private val scope: CoroutineScope) {
         audioPlayer.playMusic("Home.mp3", settings.musicVolume)
 
         scope.launch {
-            client.gameState.collect { 
-                gameState = it
+            client.gameState.collect { newState ->
+                if (isLeaving) return@collect
+                val oldState = gameState
+                gameState = newState
+                
+                // Check for win/lose
+                val newResult = newState?.lastHandResult
+                if (oldState?.lastHandResult != newResult && newResult != null) {
+                    val amIPlaying = newState.players.any { it.id == myPlayerId }
+                    if (amIPlaying) {
+                        if (newResult.winners.contains(myPlayerId)) {
+                            playSound("game_win.mp3")
+                        } else {
+                            playSound("game_lose.mp3")
+                        }
+                    }
+                }
                 
                 // If we just entered a game (gameState was null, now isn't)
-                if (it != null && currentScreen != AppScreen.GAME) {
+                // Also ensure we are actually IN the game (our ID is in the player list)
+                // This prevents re-joining if we just left but the server sends a final state update
+                val amIInGame = newState?.players?.any { it.id == myPlayerId } == true
+                if (newState != null && currentScreen != AppScreen.GAME && amIInGame) {
                     navigateToScreen(AppScreen.GAME)
                 }
             }
@@ -82,6 +105,7 @@ class GameViewModel(private val scope: CoroutineScope) {
                 if (response.success) {
                     if (response.playerId != null) {
                         myPlayerId = response.playerId
+                        myBankroll = response.bankroll // Set the bankroll from response
                         navigateToScreen(AppScreen.LOBBY)
                     }
                 }
@@ -142,6 +166,7 @@ class GameViewModel(private val scope: CoroutineScope) {
     }
 
     fun createRoom(name: String) {
+        isLeaving = false
         scope.launch {
             client.sendMessage(GameMessage.CreateRoom(name))
         }
@@ -152,26 +177,35 @@ class GameViewModel(private val scope: CoroutineScope) {
     }
 
     fun createSinglePlayerRoom() {
+        isLeaving = false
         scope.launch {
             client.sendMessage(GameMessage.CreateSinglePlayerRoom(selectedDifficulty))
         }
     }
 
     fun joinRoom(roomId: String) {
+        isLeaving = false
         scope.launch {
             client.sendMessage(GameMessage.JoinRoom(roomId, myUsername))
         }
     }
 
     fun performAction(action: BettingAction) {
+        when (action) {
+            is BettingAction.AllIn -> playSound("all_in.mp3")
+            is BettingAction.Raise, BettingAction.Call -> playSound("chips.mp3")
+            else -> playButtonSound()
+        }
         scope.launch {
             client.sendMessage(GameMessage.Action(action))
         }
     }
 
     fun leaveRoom() {
+        isLeaving = true
         scope.launch {
             client.sendMessage(GameMessage.LeaveRoom)
+            client.clearState()
             navigateToScreen(AppScreen.LOBBY)
             gameState = null
         }
@@ -198,10 +232,18 @@ class GameViewModel(private val scope: CoroutineScope) {
     }
 
     fun logout() {
-        myPlayerId = null
-        myUsername = ""
-        navigateToScreen(AppScreen.HOME)
-        gameState = null
+        isLeaving = true
+        scope.launch {
+            client.sendMessage(GameMessage.Logout)
+            myPlayerId = null
+            if (!rememberMe) {
+                myUsername = ""
+                savedPassword = ""
+            }
+            navigateToScreen(AppScreen.HOME)
+            gameState = null
+            client.clearState()
+        }
     }
     
     fun navigateToGame() {
@@ -234,5 +276,13 @@ class GameViewModel(private val scope: CoroutineScope) {
 
     fun goBack() {
         navigateToScreen(if (myPlayerId != null) AppScreen.LOBBY else AppScreen.HOME)
+    }
+
+    fun playButtonSound() {
+        playSound("button_tap.mp3")
+    }
+
+    private fun playSound(path: String) {
+        audioPlayer.playSound(path, 1.0f)
     }
 }

@@ -26,6 +26,7 @@ object Users : Table() {
     val id = varchar("id", 128)
     val username = varchar("username", 128).uniqueIndex()
     val passwordHash = varchar("passwordHash", 128)
+    val bankroll = long("bankroll")
 
     override val primaryKey = PrimaryKey(id)
 }

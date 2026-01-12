@@ -24,6 +24,8 @@ class PokerServer {
     private val json = Json { ignoreUnknownKeys = true }
     private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default)
 
+    private val playerBankrolls = ConcurrentHashMap<String, Long>() // PlayerID to Bankroll amount
+
     suspend fun handleConnection(session: WebSocketSession) {
         val sessionId = UUID.randomUUID().toString()
         sessions[sessionId] = session
@@ -42,6 +44,7 @@ class PokerServer {
                     when (message) {
                         is GameMessage.Register -> handleRegister(sessionId, message)
                         is GameMessage.Login -> handleLogin(sessionId, message)
+                        is GameMessage.Logout -> handleLogout(sessionId)
                         is GameMessage.CreateRoom -> {
                             val playerId = authenticatedPlayers[sessionId]
                             if (playerId != null) handleCreateRoom(playerId, message.roomName)
@@ -110,11 +113,32 @@ class PokerServer {
         val (success, result) = authService.login(msg.username, msg.password)
         val session = sessions[sessionId] ?: return
         if (success && result != null) {
-            authenticatedPlayers[sessionId] = result
-            playerNames[result] = msg.username
-            session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(true, "Login successful", result))))
+            authenticatedPlayers[sessionId] = result.first
+            playerNames[result.first] = msg.username
+            
+            // Fetch and store bankroll
+            val bankroll = authService.getUserBankroll(result.first)
+            if (bankroll != null) {
+                playerBankrolls[result.first] = bankroll
+                session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(true, "Login successful", result.first, bankroll))))
+            } else {
+                // Handle case where bankroll retrieval fails even after successful login
+                session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(false, "Login successful but could not retrieve bankroll.", result.first))))
+            }
         } else {
-            session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(false, result ?: "Unknown error"))))
+            // Login failed. 'result' here is Pair<String, Long>?, but if success is false, it might be null or contain an error string in the first element.
+            // Based on AuthService.login, if not found, it returns false to "User not found". If invalid password, it returns false to "Invalid password".
+            // So, result.second (bankroll part) will be null. We need to extract the error message from result.second if it exists, or use a default.
+            val errorMessage = result?.second ?: "Login failed"
+            session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(false, errorMessage.toString()))))
+        }
+    }
+
+    private suspend fun handleLogout(sessionId: String) {
+        val playerId = authenticatedPlayers.remove(sessionId)
+        if (playerId != null) {
+            handleLeaveRoom(playerId)
+            playerBankrolls.remove(playerId) // Remove bankroll on logout
         }
     }
 
@@ -124,20 +148,23 @@ class PokerServer {
 
     private suspend fun handleCreateRoom(playerId: String, name: String) = mutex.withLock {
         val roomId = UUID.randomUUID().toString()
-        val room = Room(roomId, name, hostId = playerId)
+        val room = Room(roomId, name, hostId = playerId, authService = authService, playerBankrolls = playerBankrolls)
         rooms[roomId] = room
         broadcastRoomList()
     }
 
     private suspend fun handleCreateSinglePlayerRoom(playerId: String, difficulty: AiDifficulty) = mutex.withLock {
         val roomId = UUID.randomUUID().toString()
-        val room = Room(roomId, "${playerNames[playerId]}'s Single Player Game", hostId = playerId, difficulty = difficulty)
+        val room = Room(roomId, "${playerNames[playerId]}'s Single Player Game", hostId = playerId, difficulty = difficulty, authService = authService, playerBankrolls = playerBankrolls)
         rooms[roomId] = room
         
         // Add human
         playerToRoom[playerId] = roomId
         val sessionId = authenticatedPlayers.entries.find { it.value == playerId }?.key ?: return@withLock
-        room.addPlayer(playerId, playerNames[playerId]!!, sessions[sessionId]!!)
+        val session = sessions[sessionId] ?: return@withLock
+        
+        val bankroll = playerBankrolls[playerId] ?: 10000L // Default to 10000 if not found
+        room.addPlayer(playerId, playerNames[playerId]!!, bankroll, session)
         
         // Add AI
         val aiId = "ai_${UUID.randomUUID()}"
@@ -153,7 +180,8 @@ class PokerServer {
         val sessionId = authenticatedPlayers.entries.find { it.value == playerId }?.key ?: return@withLock
         val session = sessions[sessionId] ?: return@withLock
         
-        room.addPlayer(playerId, playerName, session)
+        val bankroll = playerBankrolls[playerId] ?: 10000L // Default to 10000 if not found (shouldn't happen after login)
+        room.addPlayer(playerId, playerName, bankroll, session)
         broadcastRoomList()
     }
 
@@ -163,6 +191,7 @@ class PokerServer {
         
         if (room.hostId == playerId) {
             // Host left, close room
+            room.dispose()
             rooms.remove(roomId)
         } else {
             room.removePlayer(playerId)
@@ -227,6 +256,7 @@ class PokerServer {
 
     private suspend fun handleDisconnect(playerId: String) {
         handleLeaveRoom(playerId)
+        playerBankrolls.remove(playerId) // Remove bankroll on disconnect
     }
 
     private suspend fun sendRoomList(session: WebSocketSession) {

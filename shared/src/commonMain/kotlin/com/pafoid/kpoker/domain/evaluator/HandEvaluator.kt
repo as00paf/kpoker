@@ -28,7 +28,7 @@ object HandEvaluator {
                 Hand(HandType.ROYAL_FLUSH, straightHand.cards, description = "Royal Flush")
             } else {
                 val highRank = straightHand.cards.first().rank
-                Hand(HandType.STRAIGHT_FLUSH, straightHand.cards, description = "Straight Flush, ${highRank.name.lowercase().capitalize()}-high")
+                Hand(HandType.STRAIGHT_FLUSH, straightHand.cards, description = "Straight Flush, ${highRank.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}-high")
             }
         }
     }
@@ -42,7 +42,7 @@ object HandEvaluator {
             HandType.FOUR_OF_A_KIND, 
             quadCards, 
             kicker, 
-            description = "Four of a Kind, ${quads.name.lowercase().capitalize()}s"
+            description = "Four of a Kind, ${quads.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}s"
         )
     }
 
@@ -58,7 +58,7 @@ object HandEvaluator {
                 return Hand(
                     HandType.FULL_HOUSE, 
                     groups[tripRank]!!.take(3) + groups[pairRank]!!.take(2),
-                    description = "Full House, ${tripRank.name.lowercase().capitalize()}s full of ${pairRank.name.lowercase().capitalize()}s"
+                    description = "Full House, ${tripRank.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}s full of ${pairRank.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}s"
                 )
             }
         }
@@ -71,7 +71,7 @@ object HandEvaluator {
         return Hand(
             HandType.FLUSH, 
             flushCards.take(5), 
-            description = "Flush, ${highRank.name.lowercase().capitalize()}-high"
+            description = "Flush, ${highRank.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}-high"
         )
     }
 
@@ -102,7 +102,7 @@ object HandEvaluator {
                 return Hand(
                     HandType.STRAIGHT, 
                     uniqueRanks.subList(i, i + 5), 
-                    description = "Straight, ${highRank.name.lowercase().capitalize()}-high"
+                    description = "Straight, ${highRank.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}-high"
                 )
             }
         }
@@ -136,7 +136,7 @@ object HandEvaluator {
             HandType.THREE_OF_A_KIND, 
             tripCards, 
             kickers, 
-            description = "Three of a Kind, ${trips.name.lowercase().capitalize()}s"
+            description = "Three of a Kind, ${trips.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}s"
         )
     }
 
@@ -152,7 +152,7 @@ object HandEvaluator {
             HandType.TWO_PAIR, 
             highPair + lowPair, 
             kickers, 
-            description = "Two Pair, ${pairs[0].name.lowercase().capitalize()}s and ${pairs[1].name.lowercase().capitalize()}s"
+            description = "Two Pair, ${pairs[0].name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}s and ${pairs[1].name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}s"
         )
     }
 
@@ -165,7 +165,7 @@ object HandEvaluator {
             HandType.PAIR, 
             pairCards, 
             kickers, 
-            description = "Pair of ${pairRank.name.lowercase().capitalize()}s"
+            description = "Pair of ${pairRank.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}s"
         )
     }
 
@@ -175,7 +175,7 @@ object HandEvaluator {
             HandType.HIGH_CARD, 
             cards.take(1), 
             cards.drop(1).take(4), 
-            description = "High Card, ${highRank.name.lowercase().capitalize()}"
+            description = "High Card, ${highRank.name.lowercase().replaceFirstChar { if (it.isLowerCase()) it.titlecase() else it.toString() }}"
         )
     }
 

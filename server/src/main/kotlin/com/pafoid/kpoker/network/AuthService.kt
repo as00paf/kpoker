@@ -19,19 +19,38 @@ class AuthService {
             it[Users.id] = id
             it[Users.username] = lowerUsername
             it[Users.passwordHash] = hashPassword(password)
+            it[Users.bankroll] = 10000L // Initialize bankroll
         }
         true to id
     }
 
-    suspend fun login(username: String, password: String): Pair<Boolean, String?> = DatabaseFactory.dbQuery {
+    suspend fun login(username: String, password: String): Pair<Boolean, Pair<String, Long>?> = DatabaseFactory.dbQuery {
         val lowerUsername = username.lowercase()
         val user = Users.selectAll().where { Users.username eq lowerUsername }.singleOrNull()
-            ?: return@dbQuery false to "User not found"
+            ?: return@dbQuery false to null // Return null for user and bankroll if not found
             
         if (user[Users.passwordHash] == hashPassword(password)) {
-            return@dbQuery true to user[Users.id]
+            return@dbQuery true to (user[Users.id] to user[Users.bankroll]) // Return ID and bankroll
         }
-        false to "Invalid password"
+        false to null // Return null for user and bankroll if password is invalid
+    }
+
+    suspend fun getUserBankroll(userId: String): Long? = DatabaseFactory.dbQuery {
+        Users.select(Users.bankroll).where { Users.id eq userId }.singleOrNull()?.get(Users.bankroll)
+    }
+
+    suspend fun updateUserBankroll(userId: String, amountChange: Long): Boolean = DatabaseFactory.dbQuery {
+        val currentBankroll = Users.select(Users.bankroll).where { Users.id eq userId }.singleOrNull()?.get(Users.bankroll)
+        if (currentBankroll == null) {
+            return@dbQuery false // User not found
+        }
+        
+        // Ensure bankroll doesn't go below zero (optional, but good practice for game currency)
+        val newBankroll = (currentBankroll + amountChange).coerceAtLeast(0L)
+        
+        Users.update({ Users.id eq userId }) {
+            it[Users.bankroll] = newBankroll
+        } > 0
     }
 
     suspend fun changePassword(userId: String, newPassword: String): Boolean = DatabaseFactory.dbQuery {

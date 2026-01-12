@@ -81,4 +81,9 @@ class PokerClient(private val host: String = "localhost", private val port: Int 
     fun disconnect() {
         client.close()
     }
+
+    fun clearState() {
+        _gameState.value = null
+        _rooms.value = emptyList()
+    }
 }

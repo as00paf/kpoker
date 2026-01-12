@@ -3,8 +3,9 @@ package com.pafoid.kpoker.ui.screen
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Visibility
-import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.automirrored.filled.ExitToApp
+import androidx.compose.material.icons.automirrored.filled.Login
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,14 +36,9 @@ fun HomeScreen(
     initialPassword: String = ""
 ) {
     val Gold = Color(0xFFFFD700)
-    var username by remember { mutableStateOf(initialUsername) }
-    var password by remember { mutableStateOf(initialPassword) }
+    var username by remember(initialUsername) { mutableStateOf(initialUsername) }
+    var password by remember(initialPassword) { mutableStateOf(initialPassword) }
     var passwordVisible by remember { mutableStateOf(false) }
-
-    LaunchedEffect(initialUsername, initialPassword) {
-        if (username.isEmpty()) username = initialUsername
-        if (password.isEmpty()) password = initialPassword
-    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -121,12 +117,16 @@ fun HomeScreen(
                             onClick = { onLogin(username, password) },
                             modifier = Modifier.weight(1f)
                         ) {
+                            Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(LocalizationService.getString("login", language))
                         }
                         OutlinedButton(
                             onClick = { onRegister(username, password) },
                             modifier = Modifier.weight(1f)
                         ) {
+                            Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Spacer(Modifier.width(8.dp))
                             Text(LocalizationService.getString("register", language))
                         }
                     }
@@ -154,10 +154,12 @@ fun HomeScreen(
 
             OutlinedButton(
                 onClick = onQuit,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F)),
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD32F2F)),
                 shape = MaterialTheme.shapes.medium
             ) {
+                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
                 Text(LocalizationService.getString("quit", language))
             }
         }

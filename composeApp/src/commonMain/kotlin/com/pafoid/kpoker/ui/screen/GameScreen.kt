@@ -20,6 +20,9 @@ import kpoker.composeapp.generated.resources.game_screen_bg
 import org.jetbrains.compose.resources.painterResource
 
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import com.pafoid.kpoker.Gold
 import com.pafoid.kpoker.domain.model.GameStage
 
@@ -33,9 +36,12 @@ fun GameScreen(
     onAction: (BettingAction) -> Unit,
     onLeave: () -> Unit,
     onRulesClick: () -> Unit,
-    onStartGame: () -> Unit
+    onStartGame: () -> Unit,
+    onPlaySound: () -> Unit
 ) {
     var currentTime by remember { mutableStateOf(getCurrentTimeMillis()) }
+    val myPlayer = state.players.find { it.id == playerId }
+    val isMyTurn = state.activePlayer?.id == playerId
     
     LaunchedEffect(Unit) {
         while (true) {
@@ -59,8 +65,19 @@ fun GameScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Button(onClick = onLeave) {
-                    Text("Leave Game")
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(
+                        onClick = onLeave,
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F))
+                    ) {
+                        Text("Leave Game", color = Color.White)
+                    }
+                    
+                    if (state.stage == GameStage.WAITING && state.players.size >= 2) {
+                        Button(onClick = onStartGame) {
+                            Text("Start Hand")
+                        }
+                    }
                 }
                 
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -118,12 +135,32 @@ fun GameScreen(
                     }
                 }
 
-                if (state.stage == GameStage.WAITING && state.players.size >= 2) {
-                    Button(onClick = onStartGame) {
-                        Text("Start Hand")
+                // Top Right HUD - Chips
+                Surface(
+                    color = Color.Black.copy(alpha = 0.6f),
+                    shape = MaterialTheme.shapes.medium,
+                    border = androidx.compose.foundation.BorderStroke(2.dp, Gold)
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        Icon(Icons.Default.MonetizationOn, contentDescription = null, tint = Gold, modifier = Modifier.size(24.dp))
+                        Column {
+                            Text(
+                                text = myPlayer?.name ?: "",
+                                style = MaterialTheme.typography.labelSmall,
+                                color = Color.White.copy(alpha = 0.7f)
+                            )
+                            Text(
+                                text = "${myPlayer?.chips ?: 0}",
+                                style = MaterialTheme.typography.titleLarge,
+                                color = Gold,
+                                fontWeight = FontWeight.Bold
+                            )
+                        }
                     }
-                } else {
-                    Spacer(modifier = Modifier.width(100.dp))
                 }
             }
 
@@ -135,24 +172,82 @@ fun GameScreen(
                 horizontalArrangement = Arrangement.SpaceEvenly
             ) {
                 state.players.filter { it.id != playerId }.forEach { player ->
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = player.name,
-                            style = MaterialTheme.typography.titleMedium,
-                            color = if (state.activePlayer?.id == player.id) MaterialTheme.colorScheme.primary else Color.White
-                        )
-                        Row {
-                            if (state.stage == GameStage.SHOWDOWN && !player.isFolded) {
-                                player.holeCards.forEach { card ->
-                                    PokerCard(card = card, modifier = Modifier.size(40.dp, 60.dp).padding(2.dp))
-                                }
-                            } else if (!player.isFolded && player.holeCards.isNotEmpty()) {
-                                repeat(2) {
-                                    PokerCard(card = null, modifier = Modifier.size(40.dp, 60.dp).padding(2.dp))
+                    val isActive = state.activePlayer?.id == player.id
+                    val isHouse = player.name.contains("House", ignoreCase = true)
+                    val scale = if (isHouse) 1.4f else 1.0f
+                    
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.padding(8.dp).graphicsLayer(scaleX = scale, scaleY = scale)
+                    ) {
+                        Surface(
+                            color = when {
+                                isActive -> MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)
+                                isHouse -> Gold.copy(alpha = 0.1f)
+                                else -> Color.Transparent
+                            },
+                            shape = MaterialTheme.shapes.medium,
+                            border = when {
+                                isActive -> androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                                isHouse -> androidx.compose.foundation.BorderStroke(2.dp, Gold)
+                                else -> null
+                            },
+                            modifier = Modifier.padding(bottom = 4.dp)
+                        ) {
+                            Column(
+                                horizontalAlignment = Alignment.CenterHorizontally,
+                                modifier = Modifier.padding(8.dp)
+                            ) {
+                                Text(
+                                    text = player.name,
+                                    style = if (isHouse) MaterialTheme.typography.headlineSmall else MaterialTheme.typography.titleMedium,
+                                    color = if (isActive) MaterialTheme.colorScheme.primary else (if (isHouse) Gold else Color.White),
+                                    fontWeight = FontWeight.Bold
+                                )
+                                if (isActive) {
+                                    Text(
+                                        text = "THINKING...",
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.primary,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
                                 }
                             }
                         }
-                        Text("${player.chips} chips", color = Color.LightGray, style = MaterialTheme.typography.labelSmall)
+
+                        Box(contentAlignment = Alignment.Center) {
+                            Row {
+                                if (state.stage == GameStage.SHOWDOWN && !player.isFolded) {
+                                    player.holeCards.forEach { card ->
+                                        PokerCard(card = card, modifier = Modifier.size((40 * scale).dp, (60 * scale).dp).padding(2.dp))
+                                    }
+                                } else if (!player.isFolded && player.holeCards.isNotEmpty()) {
+                                    repeat(2) {
+                                        PokerCard(card = null, modifier = Modifier.size((40 * scale).dp, (60 * scale).dp).padding(2.dp))
+                                    }
+                                }
+                            }
+                            
+                            // Action indicator
+                            player.lastAction?.let { action ->
+                                Surface(
+                                    color = Gold,
+                                    shape = MaterialTheme.shapes.extraSmall,
+                                    modifier = Modifier.offset(y = (20 * scale).dp)
+                                ) {
+                                    Text(
+                                        text = action,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = Color.Black,
+                                        fontWeight = FontWeight.ExtraBold
+                                    )
+                                }
+                            }
+                        }
+                        
+                        Spacer(Modifier.height(8.dp))
+                        Text("${player.chips} chips", color = Color.LightGray, style = if (isHouse) MaterialTheme.typography.bodyMedium else MaterialTheme.typography.labelSmall)
                         if (player.isFolded) Text("FOLDED", color = Color.Red, style = MaterialTheme.typography.labelSmall)
                     }
                 }
@@ -182,17 +277,14 @@ fun GameScreen(
             Spacer(modifier = Modifier.weight(1f))
 
             // My Hand and Controls
-            val myPlayer = state.players.find { it.id == playerId }
-            val isMyTurn = state.activePlayer?.id == playerId
-
             if (myPlayer != null) {
                 Column(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    // Player's Cards (Centered and Tilted)
+                    // Player's Cards (Raised and tilted)
                     Box(
-                        modifier = Modifier.height(160.dp).fillMaxWidth(),
+                        modifier = Modifier.height(180.dp).fillMaxWidth().offset(y = (-20).dp),
                         contentAlignment = Alignment.Center
                     ) {
                         myPlayer.holeCards.forEachIndexed { index, card ->
@@ -205,88 +297,211 @@ fun GameScreen(
                                 modifier = Modifier
                                     .offset(x = offsetX, y = offsetY)
                                     .graphicsLayer(rotationZ = rotation)
-                                    .size(100.dp, 150.dp)
+                                    .size(110.dp, 165.dp) // Slightly bigger cards
                             )
+                        }
+
+                        // My Action indicator
+                        myPlayer.lastAction?.let { action ->
+                            Surface(
+                                color = Gold,
+                                shape = MaterialTheme.shapes.extraSmall,
+                                modifier = Modifier.offset(y = 70.dp)
+                            ) {
+                                Text(
+                                    text = action,
+                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = Color.Black,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(16.dp))
+                    Box(modifier = Modifier.height(40.dp), contentAlignment = Alignment.Center) {
+                        if (isMyTurn) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                                shape = MaterialTheme.shapes.small,
+                                border = androidx.compose.foundation.BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                            ) {
+                                Text(
+                                    "YOUR TURN",
+                                    modifier = Modifier.padding(horizontal = 16.dp, vertical = 4.dp),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontWeight = FontWeight.ExtraBold
+                                )
+                            }
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(4.dp))
 
                     Surface(
-                        modifier = Modifier.widthIn(max = 800.dp).fillMaxWidth(),
+                        modifier = Modifier.widthIn(max = 800.dp).fillMaxWidth()
+                            .graphicsLayer(alpha = if (isMyTurn) 1.0f else 0.6f),
                         color = Color.Black.copy(alpha = 0.8f),
                         shape = MaterialTheme.shapes.medium,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, Gold.copy(alpha = 0.5f))
+                        border = androidx.compose.foundation.BorderStroke(if (isMyTurn) 2.dp else 1.dp, if (isMyTurn) MaterialTheme.colorScheme.primary else Gold.copy(alpha = 0.3f))
                     ) {
                         Row(
                             modifier = Modifier.padding(16.dp),
                             verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Column {
-                                Text(LocalizationService.getString("chips", state.settings.language), style = MaterialTheme.typography.labelSmall, color = Gold)
-                                Text("${myPlayer.chips}", style = MaterialTheme.typography.headlineSmall, color = Gold, fontWeight = FontWeight.Bold)
-                            }
-                            
                             if (myPlayer.currentBet > 0) {
-                                Spacer(modifier = Modifier.width(24.dp))
                                 Column {
                                     Text(LocalizationService.getString("current_bet", state.settings.language), style = MaterialTheme.typography.labelSmall, color = Gold)
                                     Text("${myPlayer.currentBet}", style = MaterialTheme.typography.headlineSmall, color = Gold, fontWeight = FontWeight.Bold)
                                 }
+                                Spacer(modifier = Modifier.width(24.dp))
                             }
 
-                            Spacer(modifier = Modifier.weight(1f))
+                            val minRaiseTotal = state.currentMaxBet + state.minRaise
+                            val maxRaiseTotal = myPlayer.chips + myPlayer.currentBet
+                            
+                            var betSliderValue by remember(state.activePlayerIndex) { 
+                                mutableStateOf(minOf(maxRaiseTotal, minRaiseTotal).toFloat()) 
+                            }
 
-                            if (isMyTurn) {
-                                var betSliderValue by remember(state.activePlayerIndex) { 
-                                    val minRaiseTotal = state.currentMaxBet + state.minRaise
-                                    mutableStateOf(minRaiseTotal.toFloat()) 
-                                }
-
-                                Row(
-                                    modifier = Modifier.weight(1f),
-                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    val minRaiseTotal = state.currentMaxBet + state.minRaise
-                                    val maxRaiseTotal = myPlayer.chips + myPlayer.currentBet
-                                    
-                                    if (maxRaiseTotal > minRaiseTotal) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = "${LocalizationService.getString("bet_amount", state.settings.language)}: ${betSliderValue.toLong()}",
-                                                color = Gold,
-                                                style = MaterialTheme.typography.labelMedium
-                                            )
-                                            Slider(
-                                                value = betSliderValue,
-                                                onValueChange = { betSliderValue = it },
-                                                valueRange = minRaiseTotal.toFloat()..maxRaiseTotal.toFloat(),
-                                                modifier = Modifier.fillMaxWidth()
-                                            )
+                            Column(
+                                modifier = Modifier.weight(1f),
+                                verticalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (maxRaiseTotal >= minRaiseTotal && myPlayer.chips > (state.currentMaxBet - myPlayer.currentBet)) {
+                                    // Quick Bet Buttons
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                    ) {
+                                        val potOptions = listOf(
+                                            "1/2 Pot" to (state.pot / 2 + state.currentMaxBet),
+                                            "3/4 Pot" to (state.pot * 3 / 4 + state.currentMaxBet),
+                                            "Pot" to (state.pot + state.currentMaxBet)
+                                        )
+                                        
+                                        potOptions.forEach { (label, value) ->
+                                            val targetValue = minOf(maxRaiseTotal, maxOf(minRaiseTotal, value))
+                                            OutlinedButton(
+                                                onClick = { 
+                                                    onPlaySound()
+                                                    betSliderValue = targetValue.toFloat() 
+                                                },
+                                                enabled = isMyTurn,
+                                                modifier = Modifier.weight(1f),
+                                                contentPadding = PaddingValues(horizontal = 4.dp, vertical = 4.dp),
+                                                colors = ButtonDefaults.outlinedButtonColors(contentColor = Gold),
+                                                border = androidx.compose.foundation.BorderStroke(1.dp, Gold.copy(alpha = if (isMyTurn) 0.5f else 0.2f))
+                                            ) {
+                                                Text(label, style = MaterialTheme.typography.labelSmall)
+                                            }
                                         }
                                     }
 
-                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                        Button(onClick = { onAction(BettingAction.Fold) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                                            Text(LocalizationService.getString("fold", state.settings.language))
-                                        }
-                                        if (myPlayer.currentBet >= state.currentMaxBet) {
-                                            Button(onClick = { onAction(BettingAction.Check) }) {
-                                                Text(LocalizationService.getString("check", state.settings.language))
-                                            }
-                                        } else {
-                                            Button(onClick = { onAction(BettingAction.Call) }) {
-                                                val toCall = state.currentMaxBet - myPlayer.currentBet
-                                                Text("${LocalizationService.getString("call", state.settings.language)} $toCall")
-                                            }
+                                    // Slider and +/- Buttons
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        IconButton(
+                                            onClick = { 
+                                                onPlaySound()
+                                                betSliderValue = maxOf(minRaiseTotal.toFloat(), betSliderValue - state.bigBlind) 
+                                            },
+                                            enabled = isMyTurn,
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Remove, contentDescription = null, tint = if (isMyTurn) Gold else Gold.copy(alpha = 0.3f))
                                         }
                                         
-                                        if (myPlayer.chips >= (minRaiseTotal - myPlayer.currentBet)) {
-                                            Button(onClick = { onAction(BettingAction.Raise(betSliderValue.toLong())) }) {
-                                                Text("${LocalizationService.getString("raise_to", state.settings.language)} ${betSliderValue.toLong()}")
-                                            }
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Slider(
+                                                value = betSliderValue,
+                                                onValueChange = { betSliderValue = it },
+                                                enabled = isMyTurn,
+                                                valueRange = minRaiseTotal.toFloat()..maxRaiseTotal.toFloat(),
+                                                modifier = Modifier.fillMaxWidth(),
+                                                colors = SliderDefaults.colors(
+                                                    thumbColor = Gold,
+                                                    activeTrackColor = Gold,
+                                                    inactiveTrackColor = Gold.copy(alpha = 0.24f),
+                                                    disabledThumbColor = Gold.copy(alpha = 0.3f),
+                                                    disabledActiveTrackColor = Gold.copy(alpha = 0.1f)
+                                                )
+                                            )
+                                            Text(
+                                                text = "${LocalizationService.getString("bet_amount", state.settings.language)}: ${betSliderValue.toLong()}",
+                                                color = if (isMyTurn) Gold else Gold.copy(alpha = 0.5f),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                modifier = Modifier.fillMaxWidth(),
+                                                textAlign = TextAlign.Center,
+                                                fontWeight = FontWeight.Bold
+                                            )
                                         }
+                                        
+                                        IconButton(
+                                            onClick = { 
+                                                onPlaySound()
+                                                betSliderValue = minOf(maxRaiseTotal.toFloat(), betSliderValue + state.bigBlind) 
+                                            },
+                                            enabled = isMyTurn,
+                                            modifier = Modifier.size(32.dp)
+                                        ) {
+                                            Icon(Icons.Default.Add, contentDescription = null, tint = if (isMyTurn) Gold else Gold.copy(alpha = 0.3f))
+                                        }
+                                    }
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                ) {
+                                    Button(
+                                        onClick = { onAction(BettingAction.Fold) }, 
+                                        enabled = isMyTurn,
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFD32F2F), disabledContainerColor = Color(0xFFD32F2F).copy(alpha = 0.3f)),
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(horizontal = 8.dp)
+                                    ) {
+                                        Text(LocalizationService.getString("fold", state.settings.language), color = if (isMyTurn) Color.White else Color.White.copy(alpha = 0.5f))
+                                    }
+                                    
+                                    val isChecking = myPlayer.currentBet >= state.currentMaxBet
+                                    Button(
+                                        onClick = { if (isChecking) onAction(BettingAction.Check) else onAction(BettingAction.Call) },
+                                        enabled = isMyTurn,
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(horizontal = 8.dp)
+                                    ) {
+                                        if (isChecking) {
+                                            Text(LocalizationService.getString("check", state.settings.language))
+                                        } else {
+                                            val toCall = state.currentMaxBet - myPlayer.currentBet
+                                            Text("${LocalizationService.getString("call", state.settings.language)} $toCall")
+                                        }
+                                    }
+                                    
+                                    if (myPlayer.chips >= (minRaiseTotal - myPlayer.currentBet) && maxRaiseTotal >= minRaiseTotal) {
+                                        Button(
+                                            onClick = { onAction(BettingAction.Raise(betSliderValue.toLong())) },
+                                            enabled = isMyTurn,
+                                            modifier = Modifier.weight(1.2f),
+                                            contentPadding = PaddingValues(horizontal = 8.dp)
+                                        ) {
+                                            Text("${LocalizationService.getString("raise_to", state.settings.language)} ${betSliderValue.toLong()}")
+                                        }
+                                    }
+                                    
+                                    Button(
+                                        onClick = { onAction(BettingAction.AllIn) },
+                                        enabled = isMyTurn,
+                                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF2E7D32), disabledContainerColor = Color(0xFF2E7D32).copy(alpha = 0.3f)),
+                                        modifier = Modifier.weight(1f),
+                                        contentPadding = PaddingValues(horizontal = 8.dp)
+                                    ) {
+                                        Text("ALL-IN", color = if (isMyTurn) Color.White else Color.White.copy(alpha = 0.5f))
                                     }
                                 }
                             }
@@ -347,12 +562,23 @@ fun GameScreen(
                         }
                     }
                     
-                    Text(
-                        text = "Next hand starting soon...",
-                        style = MaterialTheme.typography.labelMedium,
-                        color = Gold.copy(alpha = 0.7f),
-                        modifier = Modifier.padding(top = 16.dp)
-                    )
+                    state.nextHandAt?.let { nextHandAt ->
+                        val remaining = maxOf(0, nextHandAt - currentTime)
+                        Text(
+                            text = "Next hand starting in ${(remaining / 1000) + 1}s...",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Gold,
+                            fontWeight = FontWeight.Bold,
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+                    } ?: run {
+                        Text(
+                            text = "Next hand starting soon...",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = Gold.copy(alpha = 0.7f),
+                            modifier = Modifier.padding(top = 16.dp)
+                        )
+                    }
                 }
             }
         }

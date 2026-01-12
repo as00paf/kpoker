@@ -67,29 +67,71 @@ fun App(
                     HomeScreen(
                         isLoading = viewModel.isLoading,
                         language = viewModel.settings.language,
-                        onLogin = { user, pass -> viewModel.login(user, pass) },
-                        onRegister = { user, pass -> viewModel.register(user, pass) },
-                        onQuit = onQuit,
-                        onSettingsClick = { viewModel.navigateToSettings() },
+                        onLogin = { user, pass -> 
+                            viewModel.playButtonSound()
+                            viewModel.login(user, pass) 
+                        },
+                        onRegister = { user, pass -> 
+                            viewModel.playButtonSound()
+                            viewModel.register(user, pass) 
+                        },
+                        onQuit = {
+                            viewModel.playButtonSound()
+                            onQuit()
+                        },
+                        onSettingsClick = { 
+                            viewModel.playButtonSound()
+                            viewModel.navigateToSettings() 
+                        },
                         rememberMe = viewModel.rememberMe,
-                        onRememberMeChanged = { viewModel.updateRememberMe(it) },
+                        onRememberMeChanged = { 
+                            viewModel.playButtonSound()
+                            viewModel.updateRememberMe(it) 
+                        },
                         initialUsername = viewModel.myUsername,
                         initialPassword = viewModel.savedPassword
                     )
                 }
                 AppScreen.LOBBY -> {
                     LobbyScreen(
+                        myPlayerId = viewModel.myPlayerId,
+                        myUsername = viewModel.myUsername,
+                        myBankroll = viewModel.myBankroll,
                         rooms = viewModel.rooms,
                         language = viewModel.settings.language,
                         selectedDifficulty = viewModel.selectedDifficulty,
-                        onDifficultyChanged = { viewModel.updateDifficulty(it) },
-                        onCreateRoom = { name -> viewModel.createRoom(name) },
-                        onCreateSinglePlayerRoom = { viewModel.createSinglePlayerRoom() },
-                        onJoinRoom = { roomId -> viewModel.joinRoom(roomId) },
-                        onSettingsClick = { viewModel.navigateToSettings() },
-                        onRulesClick = { showRules = true },
-                        onLogout = { viewModel.logout() },
-                        onQuit = onQuit
+                        onDifficultyChanged = { 
+                            viewModel.playButtonSound()
+                            viewModel.updateDifficulty(it) 
+                        },
+                        onCreateRoom = { name -> 
+                            viewModel.playButtonSound()
+                            viewModel.createRoom(name) 
+                        },
+                        onCreateSinglePlayerRoom = { 
+                            viewModel.playButtonSound()
+                            viewModel.createSinglePlayerRoom() 
+                        },
+                        onJoinRoom = { roomId -> 
+                            viewModel.playButtonSound()
+                            viewModel.joinRoom(roomId) 
+                        },
+                        onSettingsClick = { 
+                            viewModel.playButtonSound()
+                            viewModel.navigateToSettings() 
+                        },
+                        onRulesClick = { 
+                            viewModel.playButtonSound()
+                            showRules = true 
+                        },
+                        onLogout = { 
+                            viewModel.playButtonSound()
+                            viewModel.logout() 
+                        },
+                        onQuit = {
+                            viewModel.playButtonSound()
+                            onQuit()
+                        }
                     )
                 }
                 AppScreen.GAME -> {
@@ -98,9 +140,19 @@ fun App(
                             state = state,
                             playerId = viewModel.myPlayerId ?: "",
                             onAction = { action -> viewModel.performAction(action) },
-                            onLeave = { viewModel.leaveRoom() },
-                            onRulesClick = { showRules = true },
-                            onStartGame = { viewModel.startGame() }
+                            onLeave = { 
+                                viewModel.playButtonSound()
+                                viewModel.leaveRoom() 
+                            },
+                            onRulesClick = { 
+                                viewModel.playButtonSound()
+                                showRules = true 
+                            },
+                            onStartGame = { 
+                                viewModel.playButtonSound()
+                                viewModel.startGame() 
+                            },
+                            onPlaySound = viewModel::playButtonSound
                         )
                     }
                 }
@@ -109,9 +161,18 @@ fun App(
                         settings = viewModel.settings,
                         showProfile = viewModel.myPlayerId != null,
                         onSettingsChanged = { viewModel.updateSettings(it) },
-                        onChangePassword = { viewModel.changePassword(it) },
-                        onChangeUsername = { viewModel.changeUsername(it) },
-                        onBack = { viewModel.goBack() }
+                        onChangePassword = { 
+                            viewModel.playButtonSound()
+                            viewModel.changePassword(it) 
+                        },
+                        onChangeUsername = { 
+                            viewModel.playButtonSound()
+                            viewModel.changeUsername(it) 
+                        },
+                        onBack = { 
+                            viewModel.playButtonSound()
+                            viewModel.goBack() 
+                        }
                     )
                 }
             }
@@ -119,7 +180,11 @@ fun App(
             if (showRules) {
                 RulesDialog(
                     language = viewModel.settings.language,
-                    onDismiss = { showRules = false }
+                    onDismiss = { 
+                        viewModel.playButtonSound()
+                        showRules = false 
+                    },
+                    onPlaySound = viewModel::playButtonSound
                 )
             }
 

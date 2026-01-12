@@ -5,6 +5,7 @@ import com.pafoid.kpoker.domain.model.GameStage
 import io.ktor.websocket.*
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.delay
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertTrue
@@ -37,7 +38,7 @@ class RoomTest {
 
     @Test
     fun testRoomPlayerManagement() = runBlocking {
-        val room = Room("1", "Test Room")
+        val room = Room("1", "Test Room", "hostId")
         val session = DummySession()
         
         room.addPlayer("p1", "Alice", session)
@@ -52,12 +53,36 @@ class RoomTest {
 
     @Test
     fun testRoomStartGame() = runBlocking {
-        val room = Room("1", "Test Room")
+        val room = Room("1", "Test Room", "hostId")
         room.addPlayer("p1", "Alice", DummySession())
         room.addPlayer("p2", "Bob", DummySession())
         
         room.startGame()
         
         assertEquals(GameStage.PRE_FLOP, room.engine.getState().stage)
+    }
+
+    @Test
+    fun testNextHandScheduling() = runBlocking {
+        val room = Room("1", "Test Room", "hostId")
+        room.addPlayer("p1", "Alice", DummySession())
+        room.addPlayer("p2", "Bob", DummySession())
+        
+        room.startGame()
+        
+        // Alice (SB) calls, Bob (BB) folds -> Showdown
+        // Actually heads-up: AI/p2 is BB, Alice/p1 is SB. Alice acts first.
+        room.handleAction("p1", BettingAction.Call)
+        room.handleAction("p2", BettingAction.Fold)
+        
+        val state = room.engine.getState()
+        assertEquals(GameStage.SHOWDOWN, state.stage)
+        assertTrue(state.nextHandAt != null, "nextHandAt should be set")
+        
+        // Wait for next hand (using reduced 5s delay)
+        delay(6000)
+        
+        val nextState = room.engine.getState()
+        assertEquals(GameStage.PRE_FLOP, nextState.stage, "Should have started next hand")
     }
 }
