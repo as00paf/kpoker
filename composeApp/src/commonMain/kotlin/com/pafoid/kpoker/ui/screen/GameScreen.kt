@@ -237,24 +237,54 @@ fun GameScreen(
                             Spacer(modifier = Modifier.weight(1f))
 
                             if (isMyTurn) {
-                                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Button(onClick = { onAction(BettingAction.Fold) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
-                                        Text(LocalizationService.getString("fold", state.settings.language))
-                                    }
-                                    if (myPlayer.currentBet >= state.currentMaxBet) {
-                                        Button(onClick = { onAction(BettingAction.Check) }) {
-                                            Text(LocalizationService.getString("check", state.settings.language))
-                                        }
-                                    } else {
-                                        Button(onClick = { onAction(BettingAction.Call) }) {
-                                            val toCall = state.currentMaxBet - myPlayer.currentBet
-                                            Text("${LocalizationService.getString("call", state.settings.language)} $toCall")
-                                        }
-                                    }
+                                var betSliderValue by remember(state.activePlayerIndex) { 
                                     val minRaiseTotal = state.currentMaxBet + state.minRaise
-                                    if (myPlayer.chips >= (minRaiseTotal - myPlayer.currentBet)) {
-                                        Button(onClick = { onAction(BettingAction.Raise(minRaiseTotal)) }) {
-                                            Text("${LocalizationService.getString("raise_to", state.settings.language)} $minRaiseTotal")
+                                    mutableStateOf(minRaiseTotal.toFloat()) 
+                                }
+
+                                Row(
+                                    modifier = Modifier.weight(1f),
+                                    horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    val minRaiseTotal = state.currentMaxBet + state.minRaise
+                                    val maxRaiseTotal = myPlayer.chips + myPlayer.currentBet
+                                    
+                                    if (maxRaiseTotal > minRaiseTotal) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = "${LocalizationService.getString("bet_amount", state.settings.language)}: ${betSliderValue.toLong()}",
+                                                color = Gold,
+                                                style = MaterialTheme.typography.labelMedium
+                                            )
+                                            Slider(
+                                                value = betSliderValue,
+                                                onValueChange = { betSliderValue = it },
+                                                valueRange = minRaiseTotal.toFloat()..maxRaiseTotal.toFloat(),
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
+                                        }
+                                    }
+
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Button(onClick = { onAction(BettingAction.Fold) }, colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)) {
+                                            Text(LocalizationService.getString("fold", state.settings.language))
+                                        }
+                                        if (myPlayer.currentBet >= state.currentMaxBet) {
+                                            Button(onClick = { onAction(BettingAction.Check) }) {
+                                                Text(LocalizationService.getString("check", state.settings.language))
+                                            }
+                                        } else {
+                                            Button(onClick = { onAction(BettingAction.Call) }) {
+                                                val toCall = state.currentMaxBet - myPlayer.currentBet
+                                                Text("${LocalizationService.getString("call", state.settings.language)} $toCall")
+                                            }
+                                        }
+                                        
+                                        if (myPlayer.chips >= (minRaiseTotal - myPlayer.currentBet)) {
+                                            Button(onClick = { onAction(BettingAction.Raise(betSliderValue.toLong())) }) {
+                                                Text("${LocalizationService.getString("raise_to", state.settings.language)} ${betSliderValue.toLong()}")
+                                            }
                                         }
                                     }
                                 }

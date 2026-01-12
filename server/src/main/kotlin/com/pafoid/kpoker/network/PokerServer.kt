@@ -185,18 +185,6 @@ class PokerServer {
         }
 
         room.handleAction(playerId, action)
-        
-        if (room.engine.getState().stage == com.pafoid.kpoker.domain.model.GameStage.SHOWDOWN) {
-            // Set when next hand starts (40 seconds from now)
-            val nextStart = getCurrentTimeMillis() + 40000
-            room.engine.updateNextHandTime(nextStart)
-            room.broadcastState()
-
-            scope.launch {
-                delay(40000)
-                room.startGame()
-            }
-        }
     }
 
     private suspend fun handlePasswordChange(playerId: String, newPass: String) {

@@ -9,8 +9,6 @@ import com.pafoid.kpoker.network.AiDifficulty
 object AiService {
     
     suspend fun decideAction(state: GameState, aiPlayerId: String, difficulty: AiDifficulty): BettingAction {
-        delay(1000)
-        
         val aiPlayer = state.players.find { it.id == aiPlayerId } ?: return BettingAction.Fold
         val callAmount = state.currentMaxBet - aiPlayer.currentBet
         

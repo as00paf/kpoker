@@ -50,7 +50,18 @@ object LocalizationService {
         "easy" to "Easy",
         "medium" to "Medium",
         "hard" to "Hard",
-        "select_difficulty" to "Select AI Difficulty"
+        "select_difficulty" to "Select AI Difficulty",
+        "rules" to "Rules",
+        "poker_rules_title" to "Texas Hold'em Rules",
+        "poker_rules_content" to """
+            1. Two hole cards are dealt to each player.
+            2. Five community cards are dealt face up.
+            3. Use your two cards and the five community cards to make the best five-card hand.
+            4. Betting rounds: Pre-flop, Flop, Turn, River.
+            5. The best hand wins the pot!
+        """.trimIndent(),
+        "close" to "Close",
+        "bet_amount" to "Bet Amount"
     )
 
     private val fr = mapOf(
@@ -100,7 +111,18 @@ object LocalizationService {
         "easy" to "Facile",
         "medium" to "Moyen",
         "hard" to "Difficile",
-        "select_difficulty" to "Difficulté de l'IA"
+        "select_difficulty" to "Difficulté de l'IA",
+        "rules" to "Règles",
+        "poker_rules_title" to "Règles du Texas Hold'em",
+        "poker_rules_content" to """
+            1. Deux cartes fermées sont distribuées à chaque joueur.
+            2. Cinq cartes communes sont distribuées face ouverte.
+            3. Utilisez vos deux cartes et les cinq cartes communes pour former la meilleure main de cinq cartes.
+            4. Tours d'enchères : Pre-flop, Flop, Turn, River.
+            5. La meilleure main remporte le pot !
+        """.trimIndent(),
+        "close" to "Fermer",
+        "bet_amount" to "Montant de la mise"
     )
 
     fun getString(key: String, language: Language): String {

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.darkColorScheme
@@ -13,6 +14,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
+import com.pafoid.kpoker.ui.component.RulesDialog
 import com.pafoid.kpoker.ui.screen.GameScreen
 import com.pafoid.kpoker.ui.screen.HomeScreen
 import com.pafoid.kpoker.ui.screen.LobbyScreen
@@ -39,6 +41,7 @@ fun App(
         val scope = rememberCoroutineScope()
         val snackbarHostState = remember { SnackbarHostState() }
         val viewModel = remember { GameViewModel(scope) }
+        var showRules by remember { mutableStateOf(false) }
 
         Box(modifier = Modifier.fillMaxSize()) {
             LaunchedEffect(Unit) {
@@ -83,6 +86,7 @@ fun App(
                         onCreateSinglePlayerRoom = { viewModel.createSinglePlayerRoom() },
                         onJoinRoom = { roomId -> viewModel.joinRoom(roomId) },
                         onSettingsClick = { viewModel.navigateToSettings() },
+                        onRulesClick = { showRules = true },
                         onLogout = { viewModel.logout() }
                     )
                 }
@@ -93,6 +97,7 @@ fun App(
                             playerId = viewModel.myPlayerId ?: "",
                             onAction = { action -> viewModel.performAction(action) },
                             onLeave = { viewModel.leaveRoom() },
+                            onRulesClick = { showRules = true },
                             onStartGame = { viewModel.startGame() }
                         )
                     }
@@ -106,6 +111,13 @@ fun App(
                         onBack = { viewModel.goBack() }
                     )
                 }
+            }
+
+            if (showRules) {
+                RulesDialog(
+                    language = viewModel.settings.language,
+                    onDismiss = { showRules = false }
+                )
             }
 
             SnackbarHost(

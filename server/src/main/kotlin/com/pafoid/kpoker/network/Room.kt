@@ -69,9 +69,17 @@ class Room(
         broadcastState()
         
         if (engine.getState().stage == com.pafoid.kpoker.domain.model.GameStage.SHOWDOWN) {
+            val nextStart = getCurrentTimeMillis() + 40000
+            engine.updateNextHandTime(nextStart)
+            // No need to broadcast here, handleAction's broadcast covers it
+            
             scope.launch {
-                delay(40000) // 40 second wait before next hand
-                roomStartGame()
+                delay(40000)
+                mutex.withLock {
+                    if (engine.getState().stage == com.pafoid.kpoker.domain.model.GameStage.SHOWDOWN) {
+                        roomStartGame()
+                    }
+                }
             }
         }
         
