@@ -63,11 +63,10 @@ class GameViewModel(private val scope: CoroutineScope) {
 
         scope.launch {
             client.gameState.collect { 
-                val oldState = gameState
                 gameState = it
                 
                 // If we just entered a game (gameState was null, now isn't)
-                if (oldState == null && it != null && currentScreen != AppScreen.GAME) {
+                if (it != null && currentScreen != AppScreen.GAME) {
                     navigateToScreen(AppScreen.GAME)
                 }
             }
