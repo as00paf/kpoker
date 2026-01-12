@@ -239,14 +239,14 @@ class PokerServer {
 
     private suspend fun handleCreateRoom(playerId: String, name: String) = mutex.withLock {
         val roomId = UUID.randomUUID().toString()
-        val room = Room(roomId, name)
+        val room = Room(roomId, name, hostId = playerId)
         rooms[roomId] = room
         broadcastRoomList()
     }
 
-    private suspend fun handleCreateSinglePlayerRoom(playerId: String) = mutex.withLock {
+    private suspend fun handleCreateSinglePlayerRoom(playerId: String, difficulty: AiDifficulty) = mutex.withLock {
         val roomId = UUID.randomUUID().toString()
-        val room = Room(roomId, "${playerNames[playerId]}'s Single Player Game")
+        val room = Room(roomId, "${playerNames[playerId]}'s Single Player Game", hostId = playerId, difficulty = difficulty)
         rooms[roomId] = room
         
         // Add human

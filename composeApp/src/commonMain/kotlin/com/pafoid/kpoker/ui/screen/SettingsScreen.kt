@@ -10,7 +10,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pafoid.kpoker.domain.model.Language
 import com.pafoid.kpoker.domain.model.Settings
+import com.pafoid.kpoker.network.LocalizationService
 import kpoker.composeapp.generated.resources.Res
 import kpoker.composeapp.generated.resources.home_screen_bg
 import org.jetbrains.compose.resources.painterResource
@@ -25,6 +27,14 @@ fun SettingsScreen(
 ) {
     var newPassword by remember { mutableStateOf("") }
     var newUsername by remember { mutableStateOf("") }
+    var selectedTabIndex by remember { mutableStateOf(0) }
+    val language = settings.language
+
+    val tabs = listOf(
+        LocalizationService.getString("display", language),
+        LocalizationService.getString("audio", language),
+        LocalizationService.getString("profile", language)
+    )
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -37,7 +47,8 @@ fun SettingsScreen(
         Surface(
             modifier = Modifier
                 .align(Alignment.Center)
-                .width(500.dp)
+                .width(600.dp)
+                .heightIn(min = 500.dp)
                 .padding(16.dp),
             color = Color.Black.copy(alpha = 0.85f),
             shape = MaterialTheme.shapes.large,
@@ -45,135 +56,147 @@ fun SettingsScreen(
         ) {
             Column(
                 modifier = Modifier.padding(32.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(24.dp)
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "SETTINGS",
+                    text = LocalizationService.getString("settings", language).uppercase(),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
 
-                // Fullscreen Toggle
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                TabRow(
+                    selectedTabIndex = selectedTabIndex,
+                    containerColor = Color.Transparent,
+                    contentColor = MaterialTheme.colorScheme.primary,
+                    divider = {}
                 ) {
-                    Text("Full Screen Mode", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
-                    Switch(
-                        checked = settings.isFullscreen,
-                        onCheckedChange = { onSettingsChanged(settings.copy(isFullscreen = it)) }
-                    )
-                }
-
-                Divider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-
-                // Music Volume
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Music Volume", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
-                        Text("${(settings.musicVolume * 100).toInt()}%", color = MaterialTheme.colorScheme.primary)
-                    }
-                    Slider(
-                        value = settings.musicVolume,
-                        onValueChange = { onSettingsChanged(settings.copy(musicVolume = it)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                // SFX Volume
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text("Sound Effects", style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.primary)
-                        Text("${(settings.sfxVolume * 100).toInt()}%", color = MaterialTheme.colorScheme.primary)
-                    }
-                    Slider(
-                        value = settings.sfxVolume,
-                        onValueChange = { onSettingsChanged(settings.copy(sfxVolume = it)) },
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-
-                Divider(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-
-                // Profile Section
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    Text("PROFILE", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
-                    
-                    OutlinedTextField(
-                        value = newUsername,
-                        onValueChange = { newUsername = it },
-                        label = { Text("New Username") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            unfocusedLabelColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            focusedTextColor = MaterialTheme.colorScheme.primary,
-                            unfocusedTextColor = MaterialTheme.colorScheme.primary
+                    tabs.forEachIndexed { index, title ->
+                        Tab(
+                            selected = selectedTabIndex == index,
+                            onClick = { selectedTabIndex = index },
+                            text = { Text(title, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal) }
                         )
-                    )
-                    
-                    Button(
-                        onClick = {
-                            if (newUsername.isNotBlank()) {
-                                onChangeUsername(newUsername)
-                                newUsername = ""
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Change Username")
-                    }
-
-                    Spacer(modifier = Modifier.height(8.dp))
-
-                    OutlinedTextField(
-                        value = newPassword,
-                        onValueChange = { newPassword = it },
-                        label = { Text("New Password") },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
-                        colors = TextFieldDefaults.colors(
-                            unfocusedLabelColor = MaterialTheme.colorScheme.primary,
-                            focusedLabelColor = MaterialTheme.colorScheme.primary,
-                            focusedTextColor = MaterialTheme.colorScheme.primary,
-                            unfocusedTextColor = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                    
-                    Button(
-                        onClick = {
-                            if (newPassword.isNotBlank()) {
-                                onChangePassword(newPassword)
-                                newPassword = ""
-                            }
-                        },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text("Change Password")
                     }
                 }
 
-                Spacer(modifier = Modifier.height(8.dp))
+                Spacer(modifier = Modifier.height(32.dp))
+
+                Box(modifier = Modifier.weight(1f)) {
+                    when (selectedTabIndex) {
+                        0 -> { // Display
+                            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(LocalizationService.getString("fullscreen", language), color = MaterialTheme.colorScheme.primary)
+                                    Switch(
+                                        checked = settings.isFullscreen,
+                                        onCheckedChange = { onSettingsChanged(settings.copy(isFullscreen = it)) }
+                                    )
+                                }
+
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(LocalizationService.getString("language", language), color = MaterialTheme.colorScheme.primary)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Language.entries.forEach { lang ->
+                                            FilterChip(
+                                                selected = settings.language == lang,
+                                                onClick = { onSettingsChanged(settings.copy(language = lang)) },
+                                                label = { Text(if (lang == Language.ENGLISH) "English" else "Français") }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                        1 -> { // Audio
+                            Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
+                                Column {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(LocalizationService.getString("music_vol", language), color = MaterialTheme.colorScheme.primary)
+                                        Text("${(settings.musicVolume * 100).toInt()}%", color = MaterialTheme.colorScheme.primary)
+                                    }
+                                    Slider(
+                                        value = settings.musicVolume,
+                                        onValueChange = { onSettingsChanged(settings.copy(musicVolume = it)) }
+                                    )
+                                }
+                                Column {
+                                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                                        Text(LocalizationService.getString("sfx_vol", language), color = MaterialTheme.colorScheme.primary)
+                                        Text("${(settings.sfxVolume * 100).toInt()}%", color = MaterialTheme.colorScheme.primary)
+                                    }
+                                    Slider(
+                                        value = settings.sfxVolume,
+                                        onValueChange = { onSettingsChanged(settings.copy(sfxVolume = it)) }
+                                    )
+                                }
+                            }
+                        }
+                        2 -> { // Profile
+                            Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                OutlinedTextField(
+                                    value = newUsername,
+                                    onValueChange = { newUsername = it },
+                                    label = { Text(LocalizationService.getString("new_username", language)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    colors = TextFieldDefaults.colors(
+                                        unfocusedLabelColor = MaterialTheme.colorScheme.primary,
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                                Button(
+                                    onClick = { if (newUsername.isNotBlank()) { onChangeUsername(newUsername); newUsername = "" } },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(LocalizationService.getString("change_username", language))
+                                }
+
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                OutlinedTextField(
+                                    value = newPassword,
+                                    onValueChange = { newPassword = it },
+                                    label = { Text(LocalizationService.getString("new_password", language)) },
+                                    modifier = Modifier.fillMaxWidth(),
+                                    singleLine = true,
+                                    colors = TextFieldDefaults.colors(
+                                        unfocusedLabelColor = MaterialTheme.colorScheme.primary,
+                                        focusedLabelColor = MaterialTheme.colorScheme.primary,
+                                        focusedTextColor = MaterialTheme.colorScheme.primary,
+                                        unfocusedTextColor = MaterialTheme.colorScheme.primary
+                                    )
+                                )
+                                Button(
+                                    onClick = { if (newPassword.isNotBlank()) { onChangePassword(newPassword); newPassword = "" } },
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(LocalizationService.getString("change_password", language))
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
 
                 OutlinedButton(
                     onClick = onBack,
                     modifier = Modifier.fillMaxWidth(),
                     border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                 ) {
-                    Text("Back", color = MaterialTheme.colorScheme.primary)
+                    Text(LocalizationService.getString("back", language), color = MaterialTheme.colorScheme.primary)
                 }
             }
         }

@@ -6,6 +6,11 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerialName
 
 @Serializable
+enum class AiDifficulty {
+    EASY, MEDIUM, HARD
+}
+
+@Serializable
 sealed class GameMessage {
     @Serializable
     @SerialName("register")
@@ -25,7 +30,7 @@ sealed class GameMessage {
 
     @Serializable
     @SerialName("create_single_player_room")
-    object CreateSinglePlayerRoom : GameMessage()
+    data class CreateSinglePlayerRoom(val difficulty: AiDifficulty) : GameMessage()
 
     @Serializable
     @SerialName("join_room")

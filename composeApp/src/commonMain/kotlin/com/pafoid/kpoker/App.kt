@@ -63,6 +63,7 @@ fun App(
                 AppScreen.HOME -> {
                     HomeScreen(
                         isLoading = viewModel.isLoading,
+                        language = viewModel.settings.language,
                         onLogin = { user, pass -> viewModel.login(user, pass) },
                         onRegister = { user, pass -> viewModel.register(user, pass) },
                         onQuit = onQuit,
@@ -75,6 +76,9 @@ fun App(
                 AppScreen.LOBBY -> {
                     LobbyScreen(
                         rooms = viewModel.rooms,
+                        language = viewModel.settings.language,
+                        selectedDifficulty = viewModel.selectedDifficulty,
+                        onDifficultyChanged = { viewModel.updateDifficulty(it) },
                         onCreateRoom = { name -> viewModel.createRoom(name) },
                         onCreateSinglePlayerRoom = { viewModel.createSinglePlayerRoom() },
                         onJoinRoom = { roomId -> viewModel.joinRoom(roomId) },

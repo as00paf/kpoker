@@ -17,9 +17,13 @@ import kpoker.composeapp.generated.resources.Res
 import kpoker.composeapp.generated.resources.home_screen_bg
 import org.jetbrains.compose.resources.painterResource
 
+import com.pafoid.kpoker.domain.model.Language
+import com.pafoid.kpoker.network.LocalizationService
+
 @Composable
 fun HomeScreen(
     isLoading: Boolean,
+    language: Language,
     onLogin: (String, String) -> Unit,
     onRegister: (String, String) -> Unit,
     onQuit: () -> Unit,
@@ -61,7 +65,7 @@ fun HomeScreen(
                 OutlinedTextField(
                     value = username,
                     onValueChange = { username = it },
-                    label = { Text("Username") },
+                    label = { Text(LocalizationService.getString("username", language)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     enabled = !isLoading
@@ -70,7 +74,7 @@ fun HomeScreen(
                 OutlinedTextField(
                     value = password,
                     onValueChange = { password = it },
-                    label = { Text("Password") },
+                    label = { Text(LocalizationService.getString("password", language)) },
                     modifier = Modifier.fillMaxWidth(),
                     visualTransformation = if (passwordVisible) VisualTransformation.None else PasswordVisualTransformation(),
                     singleLine = true,
@@ -96,7 +100,7 @@ fun HomeScreen(
                         enabled = !isLoading
                     )
                     Text(
-                        text = "Remember Me",
+                        text = LocalizationService.getString("remember_me", language),
                         style = MaterialTheme.typography.bodyMedium,
                         modifier = Modifier.padding(start = 8.dp),
                         color = MaterialTheme.colorScheme.onSurface
@@ -114,13 +118,13 @@ fun HomeScreen(
                             onClick = { onLogin(username, password) },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Login")
+                            Text(LocalizationService.getString("login", language))
                         }
                         OutlinedButton(
                             onClick = { onRegister(username, password) },
                             modifier = Modifier.weight(1f)
                         ) {
-                            Text("Register")
+                            Text(LocalizationService.getString("register", language))
                         }
                     }
                     
@@ -130,7 +134,7 @@ fun HomeScreen(
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
                         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
                     ) {
-                        Text("Quit Game")
+                        Text(LocalizationService.getString("quit", language))
                     }
                 }
             }

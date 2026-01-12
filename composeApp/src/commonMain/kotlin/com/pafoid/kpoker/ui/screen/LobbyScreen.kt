@@ -15,9 +15,16 @@ import kpoker.composeapp.generated.resources.Res
 import kpoker.composeapp.generated.resources.home_screen_bg
 import org.jetbrains.compose.resources.painterResource
 
+import com.pafoid.kpoker.domain.model.Language
+import com.pafoid.kpoker.network.AiDifficulty
+import com.pafoid.kpoker.network.LocalizationService
+
 @Composable
 fun LobbyScreen(
     rooms: List<RoomInfo>,
+    language: Language,
+    selectedDifficulty: AiDifficulty,
+    onDifficultyChanged: (AiDifficulty) -> Unit,
     onCreateRoom: (String) -> Unit,
     onCreateSinglePlayerRoom: () -> Unit,
     onJoinRoom: (String) -> Unit,
@@ -45,26 +52,139 @@ fun LobbyScreen(
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    "Game Lobby",
+                    LocalizationService.getString("lobby_title", language),
                     style = MaterialTheme.typography.displayMedium,
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = androidx.compose.ui.text.font.FontWeight.Bold
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onSettingsClick) {
+                        Text(LocalizationService.getString("settings", language))
+                    }
+                    Button(onClick = onLogout) {
+                        Text(LocalizationService.getString("logout", language))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // AI Difficulty and Single Player Button
+            Surface(
+                color = Color.Black.copy(alpha = 0.6f),
+                shape = MaterialTheme.shapes.medium,
+                modifier = Modifier.fillMaxWidth(),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    Text(
+                        LocalizationService.getString("select_difficulty", language) + ":",
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    
+                    AiDifficulty.entries.forEach { diff ->
+                        FilterChip(
+                            selected = selectedDifficulty == diff,
+                            onClick = { onDifficultyChanged(diff) },
+                            label = { Text(LocalizationService.getString(diff.name.lowercase(), language)) },
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = Color.Black
+                            )
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.weight(1f))
+                    
                     Button(
                         onClick = onCreateSinglePlayerRoom,
                         colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary)
                     ) {
-                        Text("Play vs The House")
-                    }
-                    Button(onClick = onSettingsClick) {
-                        Text("Settings")
-                    }
-                    Button(onClick = onLogout) {
-                        Text("Logout")
+                        Text(LocalizationService.getString("play_vs_house", language), color = Color.Black, fontWeight = FontWeight.Bold)
                     }
                 }
             }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                OutlinedTextField(
+                    value = newRoomName,
+                    onValueChange = { newRoomName = it },
+                    label = { Text(LocalizationService.getString("new_room_name", language)) },
+                    modifier = Modifier.weight(1f),
+                    colors = TextFieldDefaults.colors(
+                        unfocusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.7f),
+                        focusedContainerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        unfocusedLabelColor = MaterialTheme.colorScheme.primary,
+                        focusedLabelColor = MaterialTheme.colorScheme.primary
+                    )
+                )
+                Button(
+                    onClick = { if (newRoomName.isNotBlank()) onCreateRoom(newRoomName) },
+                    modifier = Modifier.height(56.dp)
+                ) {
+                    Text(LocalizationService.getString("create_room", language))
+                }
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Surface(
+                modifier = Modifier.fillMaxSize(),
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.8f),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                if (rooms.isEmpty()) {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        Text(LocalizationService.getString("no_rooms", language), style = MaterialTheme.typography.bodyLarge)
+                    }
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.fillMaxSize().padding(16.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(rooms) { room ->
+                            Card(
+                                modifier = Modifier.fillMaxWidth(),
+                                onClick = { onJoinRoom(room.id) }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(16.dp).fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column {
+                                        Text(room.name, style = MaterialTheme.typography.titleLarge)
+                                        Text("${room.playerCount} ${LocalizationService.getString("players", language)}", style = MaterialTheme.typography.bodyMedium)
+                                    }
+                                    if (room.isStarted) {
+                                        Badge(containerColor = MaterialTheme.colorScheme.error) {
+                                            Text(LocalizationService.getString("in_progress", language))
+                                        }
+                                    } else {
+                                        Badge(containerColor = MaterialTheme.colorScheme.primary) {
+                                            Text(LocalizationService.getString("waiting", language), color = Color.Black)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
 
             Spacer(modifier = Modifier.height(24.dp))
 

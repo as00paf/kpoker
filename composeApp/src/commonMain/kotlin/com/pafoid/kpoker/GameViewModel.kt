@@ -42,6 +42,9 @@ class GameViewModel(private val scope: CoroutineScope) {
     var rooms by mutableStateOf<List<RoomInfo>>(emptyList())
         private set
 
+    var selectedDifficulty by mutableStateOf(AiDifficulty.MEDIUM)
+        private set
+
     var settings by mutableStateOf(Settings())
         private set
 
@@ -139,9 +142,13 @@ class GameViewModel(private val scope: CoroutineScope) {
         }
     }
 
+    fun updateDifficulty(difficulty: AiDifficulty) {
+        selectedDifficulty = difficulty
+    }
+
     fun createSinglePlayerRoom() {
         scope.launch {
-            client.sendMessage(GameMessage.CreateSinglePlayerRoom)
+            client.sendMessage(GameMessage.CreateSinglePlayerRoom(selectedDifficulty))
         }
     }
 
