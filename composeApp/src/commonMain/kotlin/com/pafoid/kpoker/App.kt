@@ -87,7 +87,8 @@ fun App(
                         onJoinRoom = { roomId -> viewModel.joinRoom(roomId) },
                         onSettingsClick = { viewModel.navigateToSettings() },
                         onRulesClick = { showRules = true },
-                        onLogout = { viewModel.logout() }
+                        onLogout = { viewModel.logout() },
+                        onQuit = onQuit
                     )
                 }
                 AppScreen.GAME -> {

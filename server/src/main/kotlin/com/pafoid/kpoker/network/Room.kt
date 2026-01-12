@@ -3,6 +3,7 @@ package com.pafoid.kpoker.network
 import com.pafoid.kpoker.domain.engine.AiService
 import com.pafoid.kpoker.domain.engine.GameEngine
 import com.pafoid.kpoker.domain.model.BettingAction
+import com.pafoid.kpoker.getCurrentTimeMillis
 import io.ktor.websocket.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
