@@ -12,6 +12,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Settings
 import com.pafoid.kpoker.network.RoomInfo
 import kpoker.composeapp.generated.resources.Res
 import kpoker.composeapp.generated.resources.home_screen_bg
@@ -70,18 +72,8 @@ fun LobbyScreen(
                     Button(onClick = onRulesClick) {
                         Text(LocalizationService.getString("rules", language))
                     }
-                    Button(onClick = onSettingsClick) {
-                        Text(LocalizationService.getString("settings", language))
-                    }
                     Button(onClick = onLogout) {
                         Text(LocalizationService.getString("logout", language))
-                    }
-                    OutlinedButton(
-                        onClick = onQuit,
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
-                    ) {
-                        Text(LocalizationService.getString("quit", language))
                     }
                 }
             }
@@ -200,6 +192,34 @@ fun LobbyScreen(
                         }
                     }
                 }
+            }
+        }
+
+        // Bottom Right Buttons
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = onSettingsClick,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Gold),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Gold),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(LocalizationService.getString("settings", language))
+            }
+
+            OutlinedButton(
+                onClick = onQuit,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(LocalizationService.getString("quit", language))
             }
         }
     }

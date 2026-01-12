@@ -130,30 +130,35 @@ fun HomeScreen(
                             Text(LocalizationService.getString("register", language))
                         }
                     }
-                    
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        OutlinedButton(
-                            onClick = onSettingsClick,
-                            modifier = Modifier.weight(1f),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, Gold),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Gold)
-                        ) {
-                            Text(LocalizationService.getString("settings", language))
-                        }
-                        
-                        OutlinedButton(
-                            onClick = onQuit,
-                            modifier = Modifier.weight(1f),
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
-                        ) {
-                            Text(LocalizationService.getString("quit", language))
-                        }
-                    }
                 }
+            }
+        }
+
+        // Bottom Right Buttons
+        Row(
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(24.dp),
+            horizontalArrangement = Arrangement.spacedBy(12.dp)
+        ) {
+            OutlinedButton(
+                onClick = onSettingsClick,
+                border = androidx.compose.foundation.BorderStroke(1.dp, Gold),
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Gold),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                Spacer(Modifier.width(8.dp))
+                Text(LocalizationService.getString("settings", language))
+            }
+
+            OutlinedButton(
+                onClick = onQuit,
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Text(LocalizationService.getString("quit", language))
             }
         }
     }
