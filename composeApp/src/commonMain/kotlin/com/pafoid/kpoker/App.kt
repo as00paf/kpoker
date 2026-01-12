@@ -113,7 +113,16 @@ fun App(
                 modifier = Modifier
                     .align(Alignment.BottomEnd)
                     .fillMaxWidth(0.25f)
-                    .padding(16.dp)
+                    .padding(16.dp),
+                snackbar = { data ->
+                    Snackbar(
+                        snackbarData = data,
+                        containerColor = Color.Black.copy(alpha = 0.9f),
+                        contentColor = Gold,
+                        actionColor = Gold,
+                        shape = MaterialTheme.shapes.medium
+                    )
+                }
             )
         }
     }
