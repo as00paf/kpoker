@@ -8,6 +8,7 @@ import java.io.InputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import javax.sound.sampled.*
+import kotlin.math.log10
 
 class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
     private var musicJob: Job? = null
@@ -65,10 +66,15 @@ class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
                     line = AudioSystem.getLine(info) as SourceDataLine
                     line.open(format)
                     line.start()
-                    if (isMusic) musicLine = line
+                    if (isMusic) {
+                        musicLine = line
+                        println("AUDIO: Started music line with volume $musicVolume")
+                    }
                 }
                 
-                setLineVolume(line, volume)
+                // Use class-level volume for music so it can be updated mid-stream
+                val currentVol = if (isMusic) musicVolume else volume
+                setLineVolume(line, currentVol)
                 
                 val pcm = sampleBuffer.buffer
                 val pcmBytes = ByteBuffer.allocate(pcm.size * 2).apply {
@@ -91,7 +97,7 @@ class JvmAudioPlayer(private val scope: CoroutineScope) : AudioPlayer {
         try {
             if (line.isControlSupported(FloatControl.Type.MASTER_GAIN)) {
                 val gainControl = line.getControl(FloatControl.Type.MASTER_GAIN) as FloatControl
-                val dB = (Math.log10(maxOf(volume.toDouble(), 0.0001)) * 20.0).toFloat()
+                val dB = (log10(maxOf(volume.toDouble(), 0.0001)) * 50.0).toFloat()
                 gainControl.value = maxOf(minOf(dB, gainControl.maximum), gainControl.minimum)
             }
         } catch (e: Exception) {}

@@ -46,7 +46,7 @@ class GameViewModel(private val scope: CoroutineScope) {
     var selectedDifficulty by mutableStateOf(AiDifficulty.MEDIUM)
         private set
 
-    var settings by mutableStateOf(Settings())
+    var settings by mutableStateOf(settingsManager.loadAppSettings())
         private set
 
     var isLoading by mutableStateOf(false)
@@ -222,6 +222,7 @@ class GameViewModel(private val scope: CoroutineScope) {
             audioPlayer.setSfxVolume(newSettings.sfxVolume)
         }
         settings = newSettings
+        settingsManager.saveAppSettings(newSettings)
         
         // Sync with server if we are in a room
         if (myPlayerId != null) {
