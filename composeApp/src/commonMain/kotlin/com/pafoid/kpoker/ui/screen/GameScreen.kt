@@ -32,6 +32,7 @@ fun GameScreen(
     playerId: String,
     onAction: (BettingAction) -> Unit,
     onLeave: () -> Unit,
+    onRulesClick: () -> Unit,
     onStartGame: () -> Unit
 ) {
     var currentTime by remember { mutableStateOf(getCurrentTimeMillis()) }

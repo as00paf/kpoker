@@ -29,8 +29,10 @@ fun LobbyScreen(
     onCreateRoom: (String) -> Unit,
     onCreateSinglePlayerRoom: () -> Unit,
     onJoinRoom: (String) -> Unit,
+    onRulesClick: () -> Unit,
     onSettingsClick: () -> Unit,
-    onLogout: () -> Unit
+    onLogout: () -> Unit,
+    onQuit: () -> Unit
 ) {
     var newRoomName by remember { mutableStateOf("") }
 
@@ -54,16 +56,32 @@ fun LobbyScreen(
             ) {
                 Text(
                     LocalizationService.getString("lobby_title", language),
-                    style = MaterialTheme.typography.displayMedium,
+                    style = MaterialTheme.typography.displayMedium.copy(
+                        shadow = androidx.compose.ui.graphics.Shadow(
+                            color = Color.Black,
+                            offset = androidx.compose.ui.geometry.Offset(4f, 4f),
+                            blurRadius = 8f
+                        )
+                    ),
                     color = MaterialTheme.colorScheme.primary,
                     fontWeight = FontWeight.Bold
                 )
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onRulesClick) {
+                        Text(LocalizationService.getString("rules", language))
+                    }
                     Button(onClick = onSettingsClick) {
                         Text(LocalizationService.getString("settings", language))
                     }
                     Button(onClick = onLogout) {
                         Text(LocalizationService.getString("logout", language))
+                    }
+                    OutlinedButton(
+                        onClick = onQuit,
+                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error),
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                    ) {
+                        Text(LocalizationService.getString("quit", language))
                     }
                 }
             }

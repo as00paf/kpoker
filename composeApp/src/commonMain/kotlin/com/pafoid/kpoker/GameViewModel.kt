@@ -66,9 +66,9 @@ class GameViewModel(private val scope: CoroutineScope) {
                 val oldState = gameState
                 gameState = it
                 
-                // If we just entered a game, switch music
-                if (oldState == null && it != null) {
-                    audioPlayer.playMusic("Game.mp3", settings.musicVolume)
+                // If we just entered a game (gameState was null, now isn't)
+                if (oldState == null && it != null && currentScreen != AppScreen.GAME) {
+                    navigateToScreen(AppScreen.GAME)
                 }
             }
         }
@@ -83,18 +83,7 @@ class GameViewModel(private val scope: CoroutineScope) {
                 if (response.success) {
                     if (response.playerId != null) {
                         myPlayerId = response.playerId
-                        currentScreen = AppScreen.LOBBY
-                    }
-                    
-                    if (rememberMe) {
-                        settingsManager.rememberMe = true
-                        settingsManager.savedUsername = myUsername
-                        if (savedPassword.isNotEmpty()) {
-                            settingsManager.savedPassword = savedPassword
-                        }
-                    } else if (response.playerId != null) {
-                        // Only clear if we are doing a full login/register and rememberMe is false
-                        settingsManager.clearSavedCredentials()
+                        navigateToScreen(AppScreen.LOBBY)
                     }
                 }
                 _events.emit(response.message)
@@ -105,6 +94,22 @@ class GameViewModel(private val scope: CoroutineScope) {
             client.error.collect { error ->
                 isLoading = false
                 _events.emit(error)
+            }
+        }
+    }
+
+    private fun navigateToScreen(screen: AppScreen) {
+        val oldScreen = currentScreen
+        currentScreen = screen
+        
+        if (oldScreen != screen) {
+            if (screen == AppScreen.GAME) {
+                audioPlayer.playMusic("Game.mp3", settings.musicVolume)
+            } else if (oldScreen == AppScreen.GAME || oldScreen == AppScreen.HOME) {
+                // If we leave the game or start from home, ensure Home music plays
+                if (screen != AppScreen.GAME) {
+                    audioPlayer.playMusic("Home.mp3", settings.musicVolume)
+                }
             }
         }
     }
@@ -168,9 +173,8 @@ class GameViewModel(private val scope: CoroutineScope) {
     fun leaveRoom() {
         scope.launch {
             client.sendMessage(GameMessage.LeaveRoom)
-            currentScreen = AppScreen.LOBBY
+            navigateToScreen(AppScreen.LOBBY)
             gameState = null
-            audioPlayer.playMusic("Home.mp3", settings.musicVolume)
         }
     }
 
@@ -197,20 +201,18 @@ class GameViewModel(private val scope: CoroutineScope) {
     fun logout() {
         myPlayerId = null
         myUsername = ""
-        currentScreen = AppScreen.HOME
+        navigateToScreen(AppScreen.HOME)
         gameState = null
-        audioPlayer.playMusic("Home.mp3", settings.musicVolume)
     }
     
     fun navigateToGame() {
         if (gameState != null) {
-            currentScreen = AppScreen.GAME
-            audioPlayer.playMusic("Game.mp3", settings.musicVolume)
+            navigateToScreen(AppScreen.GAME)
         }
     }
 
     fun navigateToSettings() {
-        currentScreen = AppScreen.SETTINGS
+        navigateToScreen(AppScreen.SETTINGS)
     }
 
     fun updateSettings(newSettings: Settings) {
@@ -231,6 +233,6 @@ class GameViewModel(private val scope: CoroutineScope) {
     }
 
     fun goBack() {
-        currentScreen = if (myPlayerId != null) AppScreen.LOBBY else AppScreen.HOME
+        navigateToScreen(if (myPlayerId != null) AppScreen.LOBBY else AppScreen.HOME)
     }
 }
