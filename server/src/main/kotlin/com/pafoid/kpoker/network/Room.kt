@@ -1,23 +1,24 @@
 package com.pafoid.kpoker.network
 
+import com.pafoid.kpoker.domain.engine.AiService
 import com.pafoid.kpoker.domain.engine.GameEngine
 import com.pafoid.kpoker.domain.model.BettingAction
 import io.ktor.websocket.*
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.util.concurrent.ConcurrentHashMap
 
-import com.pafoid.kpoker.domain.engine.AiService
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
-
 class Room(
     val id: String,
-    val name: String
+    val name: String,
+    val hostId: String,
+    val difficulty: AiDifficulty = AiDifficulty.MEDIUM
 ) {
     val engine = GameEngine()
     private val playerSessions = ConcurrentHashMap<String, WebSocketSession>()
@@ -66,10 +67,22 @@ class Room(
     suspend fun handleAction(playerId: String, action: BettingAction) = mutex.withLock {
         engine.handleAction(playerId, action)
         broadcastState()
+        
+        if (engine.getState().stage == com.pafoid.kpoker.domain.model.GameStage.SHOWDOWN) {
+            scope.launch {
+                delay(40000) // 40 second wait before next hand
+                roomStartGame()
+            }
+        }
+        
         checkAiTurn()
     }
     
     suspend fun startGame() = mutex.withLock {
+        roomStartGame()
+    }
+
+    private suspend fun roomStartGame() {
         engine.startNewHand()
         broadcastState()
         checkAiTurn()
@@ -81,7 +94,7 @@ class Room(
         
         if (aiPlayerIds.contains(activePlayer.id)) {
             scope.launch {
-                val action = AiService.decideAction(state, activePlayer.id)
+                val action = AiService.decideAction(state, activePlayer.id, difficulty)
                 handleAction(activePlayer.id, action)
             }
         }

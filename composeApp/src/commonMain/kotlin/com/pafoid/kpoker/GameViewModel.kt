@@ -7,6 +7,7 @@ import com.pafoid.kpoker.audio.createAudioPlayer
 import com.pafoid.kpoker.domain.model.BettingAction
 import com.pafoid.kpoker.domain.model.GameState
 import com.pafoid.kpoker.domain.model.Settings
+import com.pafoid.kpoker.network.AiDifficulty
 import com.pafoid.kpoker.network.GameMessage
 import com.pafoid.kpoker.network.PokerClient
 import com.pafoid.kpoker.network.RoomInfo

@@ -14,184 +14,81 @@ import java.util.*
 import java.util.concurrent.ConcurrentHashMap
 
 class PokerServer {
-
     private val authService = AuthService()
-
     private val sessions = ConcurrentHashMap<String, WebSocketSession>() // SessionID to WebSocketSession
-
     private val authenticatedPlayers = ConcurrentHashMap<String, String>() // SessionID to PlayerID
-
     private val rooms = ConcurrentHashMap<String, Room>()
-
     private val playerToRoom = ConcurrentHashMap<String, String>() // PlayerID to RoomID
-
     private val playerNames = ConcurrentHashMap<String, String>()
-
     private val mutex = Mutex()
-
     private val json = Json { ignoreUnknownKeys = true }
-
     private val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Default)
 
-
-
     suspend fun handleConnection(session: WebSocketSession) {
-
         val sessionId = UUID.randomUUID().toString()
-
         sessions[sessionId] = session
 
-
-
         try {
-
             // Initial send room list
-
             sendRoomList(session)
 
-
-
             for (frame in session.incoming) {
-
                 if (frame is Frame.Text) {
-
                     val text = frame.readText()
-
                     val message = try {
-
                         json.decodeFromString<GameMessage>(text)
-
                     } catch (e: Exception) { null }
 
-
-
-                                        when (message) {
-
-
-
-                                            is GameMessage.Register -> handleRegister(sessionId, message)
-
-
-
-                                            is GameMessage.Login -> handleLogin(sessionId, message)
-
-
-
-                                            is GameMessage.CreateRoom -> {
-
-
-
-                                                val playerId = authenticatedPlayers[sessionId]
-
-
-
-                                                if (playerId != null) handleCreateRoom(playerId, message.roomName)
-
-
-
-                                                else sendError(session, "Not authenticated")
-
-
-
-                                            }
-
-
-
-                                            is GameMessage.CreateSinglePlayerRoom -> {
-
-
-
-                                                val playerId = authenticatedPlayers[sessionId]
-
-
-
-                                                if (playerId != null) handleCreateSinglePlayerRoom(playerId)
-
-
-
-                                                else sendError(session, "Not authenticated")
-
-
-
-                                            }
-
-
-
-                                            is GameMessage.JoinRoom -> {
-
+                    when (message) {
+                        is GameMessage.Register -> handleRegister(sessionId, message)
+                        is GameMessage.Login -> handleLogin(sessionId, message)
+                        is GameMessage.CreateRoom -> {
                             val playerId = authenticatedPlayers[sessionId]
-
-                            if (playerId != null) handleJoinRoom(playerId, message.roomId, message.playerName)
-
+                            if (playerId != null) handleCreateRoom(playerId, message.roomName)
                             else sendError(session, "Not authenticated")
-
                         }
-
+                        is GameMessage.CreateSinglePlayerRoom -> {
+                            val playerId = authenticatedPlayers[sessionId]
+                            if (playerId != null) handleCreateSinglePlayerRoom(playerId, message.difficulty)
+                            else sendError(session, "Not authenticated")
+                        }
+                        is GameMessage.JoinRoom -> {
+                            val playerId = authenticatedPlayers[sessionId]
+                            if (playerId != null) handleJoinRoom(playerId, message.roomId, message.playerName)
+                            else sendError(session, "Not authenticated")
+                        }
                         is GameMessage.LeaveRoom -> {
-
                             val playerId = authenticatedPlayers[sessionId]
-
                             if (playerId != null) handleLeaveRoom(playerId)
-
                         }
-
-                                                is GameMessage.Action -> {
-
-                                                    val playerId = authenticatedPlayers[sessionId]
-
-                                                    if (playerId != null) handleAction(playerId, message.action)
-
-                                                }
-
-                                                                        is GameMessage.ChangePassword -> {
-
-                                                                            val playerId = authenticatedPlayers[sessionId]
-
-                                                                            if (playerId != null) handlePasswordChange(playerId, message.newPassword)
-
-                                                                        }
-
-                                                                        is GameMessage.ChangeUsername -> {
-
-                                                                            val playerId = authenticatedPlayers[sessionId]
-
-                                                                            if (playerId != null) handleUsernameChange(playerId, message.newUsername)
-
-                                                                        }
-
-                                                                        is GameMessage.StartGame -> {
-
+                        is GameMessage.Action -> {
                             val playerId = authenticatedPlayers[sessionId]
-
-                            if (playerId != null) handleStartGame(playerId)
-
+                            if (playerId != null) handleAction(playerId, message.action)
                         }
-
+                        is GameMessage.ChangePassword -> {
+                            val playerId = authenticatedPlayers[sessionId]
+                            if (playerId != null) handlePasswordChange(playerId, message.newPassword)
+                        }
+                        is GameMessage.ChangeUsername -> {
+                            val playerId = authenticatedPlayers[sessionId]
+                            if (playerId != null) handleUsernameChange(playerId, message.newUsername)
+                        }
+                        is GameMessage.StartGame -> {
+                            val playerId = authenticatedPlayers[sessionId]
+                            if (playerId != null) handleStartGame(playerId)
+                        }
                         else -> {}
-
                     }
-
                 }
-
             }
-
         } finally {
-
             val playerId = authenticatedPlayers.remove(sessionId)
-
             if (playerId != null) {
-
                 handleDisconnect(playerId)
-
             }
-
             sessions.remove(sessionId)
-
         }
-
     }
-
-
 
     private suspend fun handleRegister(sessionId: String, msg: GameMessage.Register) {
         val (success, result) = authService.register(msg.username, msg.password)
@@ -205,36 +102,20 @@ class PokerServer {
         }
     }
 
-
-
     private suspend fun handleLogin(sessionId: String, msg: GameMessage.Login) {
-
         val (success, result) = authService.login(msg.username, msg.password)
-
         val session = sessions[sessionId] ?: return
-
         if (success && result != null) {
-
             authenticatedPlayers[sessionId] = result
-
             playerNames[result] = msg.username
-
             session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(true, "Login successful", result))))
-
         } else {
-
             session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(false, result ?: "Unknown error"))))
-
         }
-
     }
 
-
-
     private suspend fun sendError(session: WebSocketSession, error: String) {
-
         session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.Error(error))))
-
     }
 
     private suspend fun handleCreateRoom(playerId: String, name: String) = mutex.withLock {
@@ -274,7 +155,14 @@ class PokerServer {
 
     private suspend fun handleLeaveRoom(playerId: String) = mutex.withLock {
         val roomId = playerToRoom.remove(playerId) ?: return@withLock
-        rooms[roomId]?.removePlayer(playerId)
+        val room = rooms[roomId] ?: return@withLock
+        
+        if (room.hostId == playerId) {
+            // Host left, close room
+            rooms.remove(roomId)
+        } else {
+            room.removePlayer(playerId)
+        }
         broadcastRoomList()
     }
 
