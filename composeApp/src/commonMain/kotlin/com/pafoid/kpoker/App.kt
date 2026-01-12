@@ -70,6 +70,7 @@ fun App(
                         onLogin = { user, pass -> viewModel.login(user, pass) },
                         onRegister = { user, pass -> viewModel.register(user, pass) },
                         onQuit = onQuit,
+                        onSettingsClick = { viewModel.navigateToSettings() },
                         rememberMe = viewModel.rememberMe,
                         onRememberMeChanged = { viewModel.updateRememberMe(it) },
                         initialUsername = viewModel.myUsername,
@@ -106,6 +107,7 @@ fun App(
                 AppScreen.SETTINGS -> {
                     SettingsScreen(
                         settings = viewModel.settings,
+                        showProfile = viewModel.myPlayerId != null,
                         onSettingsChanged = { viewModel.updateSettings(it) },
                         onChangePassword = { viewModel.changePassword(it) },
                         onChangeUsername = { viewModel.changeUsername(it) },

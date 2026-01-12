@@ -27,6 +27,7 @@ fun HomeScreen(
     onLogin: (String, String) -> Unit,
     onRegister: (String, String) -> Unit,
     onQuit: () -> Unit,
+    onSettingsClick: () -> Unit,
     rememberMe: Boolean,
     onRememberMeChanged: (Boolean) -> Unit,
     initialUsername: String = "",
@@ -128,13 +129,27 @@ fun HomeScreen(
                         }
                     }
                     
-                    OutlinedButton(
-                        onClick = onQuit,
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
-                        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        Text(LocalizationService.getString("quit", language))
+                        OutlinedButton(
+                            onClick = onSettingsClick,
+                            modifier = Modifier.weight(1f),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, Gold),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = Gold)
+                        ) {
+                            Text(LocalizationService.getString("settings", language))
+                        }
+                        
+                        OutlinedButton(
+                            onClick = onQuit,
+                            modifier = Modifier.weight(1f),
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                            border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.error)
+                        ) {
+                            Text(LocalizationService.getString("quit", language))
+                        }
                     }
                 }
             }

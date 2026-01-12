@@ -20,6 +20,7 @@ import org.jetbrains.compose.resources.painterResource
 @Composable
 fun SettingsScreen(
     settings: Settings,
+    showProfile: Boolean,
     onSettingsChanged: (Settings) -> Unit,
     onChangePassword: (String) -> Unit,
     onChangeUsername: (String) -> Unit,
@@ -30,11 +31,13 @@ fun SettingsScreen(
     var selectedTabIndex by remember { mutableStateOf(0) }
     val language = settings.language
 
-    val tabs = listOf(
-        LocalizationService.getString("display", language),
-        LocalizationService.getString("audio", language),
-        LocalizationService.getString("profile", language)
-    )
+    val tabs = buildList {
+        add(LocalizationService.getString("display", language))
+        add(LocalizationService.getString("audio", language))
+        if (showProfile) {
+            add(LocalizationService.getString("profile", language))
+        }
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
