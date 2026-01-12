@@ -11,6 +11,7 @@ import com.pafoid.kpoker.network.AiDifficulty
 import com.pafoid.kpoker.network.GameMessage
 import com.pafoid.kpoker.network.PokerClient
 import com.pafoid.kpoker.network.RoomInfo
+import com.pafoid.kpoker.network.ServerStatus
 import com.pafoid.kpoker.network.SettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -55,18 +56,27 @@ class GameViewModel(private val scope: CoroutineScope) {
     var isLoading by mutableStateOf(false)
         private set
 
+    var serverStatus by mutableStateOf(ServerStatus.Disconnected)
+        private set
+
     private var isLeaving = false
 
     private val _events = MutableSharedFlow<String>()
     val events = _events.asSharedFlow()
 
-    init {
-        client.connect(scope)
-        
-        // Initial music
-        audioPlayer.playMusic("Home.mp3", settings.musicVolume)
-
-        scope.launch {
+        init {
+            client.connect(scope)
+    
+            // Observe server status
+            scope.launch {
+                client.serverStatus.collect {
+                    serverStatus = it
+                }
+            }
+    
+            // Initial music
+            audioPlayer.playMusic("Home.mp3", settings.musicVolume)
+            scope.launch {
             client.gameState.collect { newState ->
                 if (isLeaving) return@collect
                 val oldState = gameState

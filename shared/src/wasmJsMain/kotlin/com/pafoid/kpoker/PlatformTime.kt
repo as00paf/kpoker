@@ -1,5 +1,5 @@
 package com.pafoid.kpoker
 
-import kotlin.js.Date
+import kotlin.time.TimeSource
 
-actual fun getCurrentTimeMillis(): Long = Date.now().toLong()
+actual fun getCurrentTimeMillis(): Long = TimeSource.Monotonic.markNow().elapsedNow().inWholeMilliseconds

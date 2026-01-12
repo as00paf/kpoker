@@ -66,6 +66,7 @@ fun App(
                 AppScreen.HOME -> {
                     HomeScreen(
                         isLoading = viewModel.isLoading,
+                        serverStatus = viewModel.serverStatus, // Pass serverStatus here
                         language = viewModel.settings.language,
                         onLogin = { user, pass -> 
                             viewModel.playButtonSound()

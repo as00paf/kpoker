@@ -21,10 +21,12 @@ import org.jetbrains.compose.resources.painterResource
 
 import com.pafoid.kpoker.domain.model.Language
 import com.pafoid.kpoker.network.LocalizationService
+import com.pafoid.kpoker.network.ServerStatus
 
 @Composable
 fun HomeScreen(
     isLoading: Boolean,
+    serverStatus: ServerStatus,
     language: Language,
     onLogin: (String, String) -> Unit,
     onRegister: (String, String) -> Unit,

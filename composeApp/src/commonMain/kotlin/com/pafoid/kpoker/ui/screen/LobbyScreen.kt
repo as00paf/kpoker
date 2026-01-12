@@ -62,18 +62,31 @@ fun LobbyScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    LocalizationService.getString("lobby_title", language),
-                    style = MaterialTheme.typography.displayMedium.copy(
-                        shadow = androidx.compose.ui.graphics.Shadow(
-                            color = Color.Black,
-                            offset = androidx.compose.ui.geometry.Offset(4f, 4f),
-                            blurRadius = 8f
-                        )
-                    ),
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Bold
-                )
+                Column {
+                    Text(
+                        LocalizationService.getString("lobby_title", language),
+                        style = MaterialTheme.typography.displayMedium.copy(
+                            shadow = androidx.compose.ui.graphics.Shadow(
+                                color = Color.Black,
+                                offset = androidx.compose.ui.geometry.Offset(4f, 4f),
+                                blurRadius = 8f
+                            )
+                        ),
+                        color = MaterialTheme.colorScheme.primary,
+                        fontWeight = FontWeight.Bold
+                    )
+                    // Display Player Info (Username and Bankroll)
+                    Text(
+                        text = "${myUsername} (ID: ${myPlayerId ?: "N/A"})",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Gold
+                    )
+                    Text(
+                        text = "Bankroll: $${myBankroll ?: 0}",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = Gold
+                    )
+                }
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Button(onClick = onRulesClick) {
                         Text(LocalizationService.getString("rules", language))
