@@ -77,15 +77,19 @@ class GameViewModel(private val scope: CoroutineScope) {
             client.authResponse.collect { response ->
                 isLoading = false
                 if (response.success) {
-                    myPlayerId = response.playerId
-                    currentScreen = AppScreen.LOBBY
+                    if (response.playerId != null) {
+                        myPlayerId = response.playerId
+                        currentScreen = AppScreen.LOBBY
+                    }
                     
                     if (rememberMe) {
                         settingsManager.rememberMe = true
                         settingsManager.savedUsername = myUsername
-                        // Note: In a real app, we should save a token, not the plaintext password
-                        settingsManager.savedPassword = savedPassword 
-                    } else {
+                        if (savedPassword.isNotEmpty()) {
+                            settingsManager.savedPassword = savedPassword
+                        }
+                    } else if (response.playerId != null) {
+                        // Only clear if we are doing a full login/register and rememberMe is false
                         settingsManager.clearSavedCredentials()
                     }
                 }
@@ -171,6 +175,14 @@ class GameViewModel(private val scope: CoroutineScope) {
     fun changePassword(newPass: String) {
         scope.launch {
             client.sendMessage(GameMessage.ChangePassword(newPass))
+        }
+    }
+
+    fun changeUsername(newName: String) {
+        if (newName.isBlank()) return
+        myUsername = newName
+        scope.launch {
+            client.sendMessage(GameMessage.ChangeUsername(newName))
         }
     }
 

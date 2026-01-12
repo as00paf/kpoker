@@ -20,9 +20,11 @@ fun SettingsScreen(
     settings: Settings,
     onSettingsChanged: (Settings) -> Unit,
     onChangePassword: (String) -> Unit,
+    onChangeUsername: (String) -> Unit,
     onBack: () -> Unit
 ) {
     var newPassword by remember { mutableStateOf("") }
+    var newUsername by remember { mutableStateOf("") }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -109,6 +111,34 @@ fun SettingsScreen(
                 ) {
                     Text("PROFILE", style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     
+                    OutlinedTextField(
+                        value = newUsername,
+                        onValueChange = { newUsername = it },
+                        label = { Text("New Username") },
+                        modifier = Modifier.fillMaxWidth(),
+                        singleLine = true,
+                        colors = TextFieldDefaults.colors(
+                            unfocusedLabelColor = MaterialTheme.colorScheme.primary,
+                            focusedLabelColor = MaterialTheme.colorScheme.primary,
+                            focusedTextColor = MaterialTheme.colorScheme.primary,
+                            unfocusedTextColor = MaterialTheme.colorScheme.primary
+                        )
+                    )
+                    
+                    Button(
+                        onClick = {
+                            if (newUsername.isNotBlank()) {
+                                onChangeUsername(newUsername)
+                                newUsername = ""
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text("Change Username")
+                    }
+
+                    Spacer(modifier = Modifier.height(8.dp))
+
                     OutlinedTextField(
                         value = newPassword,
                         onValueChange = { newPassword = it },

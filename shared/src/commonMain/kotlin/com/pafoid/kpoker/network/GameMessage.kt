@@ -56,6 +56,10 @@ sealed class GameMessage {
     data class ChangePassword(val newPassword: String) : GameMessage()
 
     @Serializable
+    @SerialName("change_username")
+    data class ChangeUsername(val newUsername: String) : GameMessage()
+
+    @Serializable
     @SerialName("start_game")
     object StartGame : GameMessage()
 

@@ -51,12 +51,16 @@ class GameEngineTest {
         engine.addPlayer("p2", "Player 2", 1000)
         
         engine.startNewHand()
-        // Active: p2 (SB) - in my simple 2-player logic SB is (0+1)%2=1
-        engine.handleAction("p2", BettingAction.Fold)
+        // Heads-up: p1 is Dealer/SB, p2 is BB. p1 acts first.
+        
+        engine.handleAction("p1", BettingAction.Call) // p1 calls 10 more to match BB (20)
+        engine.handleAction("p2", BettingAction.Fold) // p2 folds
+        
         val state = engine.getState()
         
-        // p1 should win the blinds
-        assertTrue(state.players[0].chips > 1000)
+        // p1 put 20, p2 put 20. Pot was 40.
+        // p1: 1000 - 20 + 40 = 1020.
+        assertEquals(1020, state.players[0].chips, "P1 should have 1020 chips")
         assertEquals(GameStage.SHOWDOWN, state.stage)
     }
 

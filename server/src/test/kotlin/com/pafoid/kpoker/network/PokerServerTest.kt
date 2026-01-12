@@ -14,7 +14,20 @@ import kotlin.coroutines.CoroutineContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.serialization.json.JsonBuilder
 
+import kotlin.test.BeforeTest
+import org.jetbrains.exposed.sql.deleteAll
+
 class PokerServerTest {
+
+    @BeforeTest
+    fun setup() {
+        DatabaseFactory.init()
+        runBlocking {
+            DatabaseFactory.dbQuery {
+                Users.deleteAll()
+            }
+        }
+    }
 
     private class TestSession : WebSocketSession {
         override val incoming = Channel<Frame>(Channel.UNLIMITED)

@@ -98,6 +98,7 @@ fun App(
                         settings = viewModel.settings,
                         onSettingsChanged = { viewModel.updateSettings(it) },
                         onChangePassword = { viewModel.changePassword(it) },
+                        onChangeUsername = { viewModel.changeUsername(it) },
                         onBack = { viewModel.goBack() }
                     )
                 }

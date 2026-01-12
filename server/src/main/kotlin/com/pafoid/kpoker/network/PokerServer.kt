@@ -143,15 +143,23 @@ class PokerServer {
 
                                                 }
 
-                                                is GameMessage.ChangePassword -> {
+                                                                        is GameMessage.ChangePassword -> {
 
-                                                    val playerId = authenticatedPlayers[sessionId]
+                                                                            val playerId = authenticatedPlayers[sessionId]
 
-                                                    if (playerId != null) handlePasswordChange(playerId, message.newPassword)
+                                                                            if (playerId != null) handlePasswordChange(playerId, message.newPassword)
 
-                                                }
+                                                                        }
 
-                                                is GameMessage.StartGame -> {
+                                                                        is GameMessage.ChangeUsername -> {
+
+                                                                            val playerId = authenticatedPlayers[sessionId]
+
+                                                                            if (playerId != null) handleUsernameChange(playerId, message.newUsername)
+
+                                                                        }
+
+                                                                        is GameMessage.StartGame -> {
 
                             val playerId = authenticatedPlayers[sessionId]
 
@@ -308,6 +316,19 @@ class PokerServer {
             session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(true, "Password changed successfully"))))
         } else {
             sendError(session, "Failed to change password")
+        }
+    }
+
+    private suspend fun handleUsernameChange(playerId: String, newName: String) {
+        val (success, message) = authService.changeUsername(playerId, newName)
+        val sessionId = authenticatedPlayers.entries.find { it.value == playerId }?.key ?: return
+        val session = sessions[sessionId] ?: return
+        
+        if (success) {
+            playerNames[playerId] = newName
+            session.send(Frame.Text(json.encodeToString<GameMessage>(GameMessage.AuthResponse(true, "Username updated successfully"))))
+        } else {
+            sendError(session, message)
         }
     }
 
