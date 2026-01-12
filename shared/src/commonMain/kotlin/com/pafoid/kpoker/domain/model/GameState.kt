@@ -36,7 +36,8 @@ data class GameState(
     val lastHandResult: HandResult? = null,
     val turnTimeoutMillis: Long = 30000, // 30 seconds
     val turnStartedAt: Long? = null,
-    val nextHandAt: Long? = null
+    val nextHandAt: Long? = null,
+    val settings: Settings = Settings()
 ) {
     val activePlayer: Player? get() = if (activePlayerIndex in players.indices) players[activePlayerIndex] else null
 }

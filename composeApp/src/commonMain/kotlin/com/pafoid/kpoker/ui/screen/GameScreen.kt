@@ -81,9 +81,11 @@ fun GameScreen(
                         shape = MaterialTheme.shapes.small
                     ) {
                         Text(
-                            "Pot: ${state.pot}",
+                            "${LocalizationService.getString("pot", state.settings.language)}: ${state.pot}",
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
-                            style = MaterialTheme.typography.headlineMedium
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            fontWeight = FontWeight.Bold
                         )
                     }
                     
@@ -198,15 +200,15 @@ fun GameScreen(
                             }
                             Spacer(modifier = Modifier.width(24.dp))
                             Column {
-                                Text("CHIPS", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                                Text("${myPlayer.chips}", style = MaterialTheme.typography.headlineSmall)
+                                Text(LocalizationService.getString("chips", state.settings.language), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                Text("${myPlayer.chips}", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                             }
                             
                             if (myPlayer.currentBet > 0) {
                                 Spacer(modifier = Modifier.width(24.dp))
                                 Column {
-                                    Text("CURRENT BET", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
-                                    Text("${myPlayer.currentBet}", style = MaterialTheme.typography.headlineSmall)
+                                    Text(LocalizationService.getString("current_bet", state.settings.language), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                                    Text("${myPlayer.currentBet}", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                                 }
                             }
 

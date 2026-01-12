@@ -69,6 +69,10 @@ sealed class GameMessage {
     object StartGame : GameMessage()
 
     @Serializable
+    @SerialName("sync_settings")
+    data class SyncSettings(val settings: com.pafoid.kpoker.domain.model.Settings) : GameMessage()
+
+    @Serializable
     @SerialName("error")
     data class Error(val message: String) : GameMessage()
 }

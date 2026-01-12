@@ -300,5 +300,9 @@ class GameEngine {
         state = state.copy(nextHandAt = time)
     }
 
+    fun updateSettings(settings: Settings) {
+        state = state.copy(settings = settings)
+    }
+
     fun getState() = state
 }

@@ -77,6 +77,10 @@ class PokerServer {
                             val playerId = authenticatedPlayers[sessionId]
                             if (playerId != null) handleStartGame(playerId)
                         }
+                        is GameMessage.SyncSettings -> {
+                            val playerId = authenticatedPlayers[sessionId]
+                            if (playerId != null) handleSyncSettings(playerId, message.settings)
+                        }
                         else -> {}
                     }
                 }
@@ -224,6 +228,13 @@ class PokerServer {
         val roomId = playerToRoom[playerId] ?: return
         val room = rooms[roomId] ?: return
         room.startGame()
+    }
+
+    private suspend fun handleSyncSettings(playerId: String, settings: com.pafoid.kpoker.domain.model.Settings) {
+        val roomId = playerToRoom[playerId] ?: return
+        val room = rooms[roomId] ?: return
+        room.engine.updateSettings(settings)
+        room.broadcastState()
     }
 
     private suspend fun handleDisconnect(playerId: String) {

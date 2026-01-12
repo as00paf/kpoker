@@ -221,6 +221,13 @@ class GameViewModel(private val scope: CoroutineScope) {
             audioPlayer.setSfxVolume(newSettings.sfxVolume)
         }
         settings = newSettings
+        
+        // Sync with server if we are in a room
+        if (myPlayerId != null) {
+            scope.launch {
+                client.sendMessage(GameMessage.SyncSettings(newSettings))
+            }
+        }
     }
 
     fun goBack() {
