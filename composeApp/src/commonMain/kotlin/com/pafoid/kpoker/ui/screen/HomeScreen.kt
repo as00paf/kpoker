@@ -22,11 +22,20 @@ fun HomeScreen(
     isLoading: Boolean,
     onLogin: (String, String) -> Unit,
     onRegister: (String, String) -> Unit,
-    onQuit: () -> Unit
+    onQuit: () -> Unit,
+    rememberMe: Boolean,
+    onRememberMeChanged: (Boolean) -> Unit,
+    initialUsername: String = "",
+    initialPassword: String = ""
 ) {
-    var username by remember { mutableStateOf("") }
-    var password by remember { mutableStateOf("") }
+    var username by remember { mutableStateOf(initialUsername) }
+    var password by remember { mutableStateOf(initialPassword) }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    LaunchedEffect(initialUsername, initialPassword) {
+        if (username.isEmpty()) username = initialUsername
+        if (password.isEmpty()) password = initialPassword
+    }
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -76,6 +85,23 @@ fun HomeScreen(
                         }
                     }
                 )
+
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Checkbox(
+                        checked = rememberMe,
+                        onCheckedChange = onRememberMeChanged,
+                        enabled = !isLoading
+                    )
+                    Text(
+                        text = "Remember Me",
+                        style = MaterialTheme.typography.bodyMedium,
+                        modifier = Modifier.padding(start = 8.dp),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
 
                 if (isLoading) {
                     CircularProgressIndicator(modifier = Modifier.size(48.dp))

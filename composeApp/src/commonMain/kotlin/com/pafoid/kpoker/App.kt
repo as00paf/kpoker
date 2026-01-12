@@ -65,7 +65,11 @@ fun App(
                         isLoading = viewModel.isLoading,
                         onLogin = { user, pass -> viewModel.login(user, pass) },
                         onRegister = { user, pass -> viewModel.register(user, pass) },
-                        onQuit = onQuit
+                        onQuit = onQuit,
+                        rememberMe = viewModel.rememberMe,
+                        onRememberMeChanged = { viewModel.updateRememberMe(it) },
+                        initialUsername = viewModel.myUsername,
+                        initialPassword = viewModel.savedPassword
                     )
                 }
                 AppScreen.LOBBY -> {

@@ -10,6 +10,7 @@ import com.pafoid.kpoker.domain.model.Settings
 import com.pafoid.kpoker.network.GameMessage
 import com.pafoid.kpoker.network.PokerClient
 import com.pafoid.kpoker.network.RoomInfo
+import com.pafoid.kpoker.network.SettingsManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.asSharedFlow
@@ -18,6 +19,7 @@ import kotlinx.coroutines.launch
 class GameViewModel(private val scope: CoroutineScope) {
     private val client = PokerClient()
     private val audioPlayer = createAudioPlayer(scope)
+    private val settingsManager = SettingsManager()
     
     var currentScreen by mutableStateOf(AppScreen.HOME)
         private set
@@ -25,7 +27,13 @@ class GameViewModel(private val scope: CoroutineScope) {
     var myPlayerId by mutableStateOf<String?>(null)
         private set
         
-    var myUsername by mutableStateOf("")
+    var myUsername by mutableStateOf(settingsManager.savedUsername ?: "")
+        private set
+
+    var savedPassword by mutableStateOf(settingsManager.savedPassword ?: "")
+        private set
+
+    var rememberMe by mutableStateOf(settingsManager.rememberMe)
         private set
 
     var gameState by mutableStateOf<GameState?>(null)
@@ -71,6 +79,15 @@ class GameViewModel(private val scope: CoroutineScope) {
                 if (response.success) {
                     myPlayerId = response.playerId
                     currentScreen = AppScreen.LOBBY
+                    
+                    if (rememberMe) {
+                        settingsManager.rememberMe = true
+                        settingsManager.savedUsername = myUsername
+                        // Note: In a real app, we should save a token, not the plaintext password
+                        settingsManager.savedPassword = savedPassword 
+                    } else {
+                        settingsManager.clearSavedCredentials()
+                    }
                 }
                 _events.emit(response.message)
             }
@@ -88,6 +105,7 @@ class GameViewModel(private val scope: CoroutineScope) {
         if (user.isBlank() || pass.isBlank()) return
         isLoading = true
         myUsername = user
+        savedPassword = pass
         scope.launch {
             client.sendMessage(GameMessage.Login(user, pass))
         }
@@ -97,8 +115,17 @@ class GameViewModel(private val scope: CoroutineScope) {
         if (user.isBlank() || pass.isBlank()) return
         isLoading = true
         myUsername = user
+        savedPassword = pass
         scope.launch {
             client.sendMessage(GameMessage.Register(user, pass))
+        }
+    }
+
+    fun updateRememberMe(value: Boolean) {
+        rememberMe = value
+        settingsManager.rememberMe = value
+        if (!value) {
+            settingsManager.clearSavedCredentials()
         }
     }
 
