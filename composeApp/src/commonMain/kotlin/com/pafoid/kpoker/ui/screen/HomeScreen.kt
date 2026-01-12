@@ -23,6 +23,17 @@ import com.pafoid.kpoker.domain.model.Language
 import com.pafoid.kpoker.network.LocalizationService
 import com.pafoid.kpoker.network.ServerStatus
 
+// Helper function to get color and text for server status
+@Composable
+fun getServerStatusIndicator(status: ServerStatus): Pair<Color, String> {
+    return when (status) {
+        ServerStatus.Connected -> Pair(Color.Green, "Connected")
+        ServerStatus.Connecting -> Pair(Color.Yellow, "Connecting...")
+        ServerStatus.Disconnected -> Pair(Color.Red, "Disconnected")
+        ServerStatus.Error -> Pair(Color.Red, "Error")
+    }
+}
+
 @Composable
 fun HomeScreen(
     isLoading: Boolean,
@@ -35,12 +46,17 @@ fun HomeScreen(
     rememberMe: Boolean,
     onRememberMeChanged: (Boolean) -> Unit,
     initialUsername: String = "",
-    initialPassword: String = ""
+    initialPassword: String = "",
+    // Added username and bankroll as placeholders for potential display
+    username: String = "Guest",
+    bankroll: Long = 0
 ) {
     val Gold = Color(0xFFFFD700)
-    var username by remember(initialUsername) { mutableStateOf(initialUsername) }
+    var localUsername by remember(initialUsername) { mutableStateOf(initialUsername) }
     var password by remember(initialPassword) { mutableStateOf(initialPassword) }
     var passwordVisible by remember { mutableStateOf(false) }
+
+    val (statusColor, statusText) = getServerStatusIndicator(serverStatus)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Image(
@@ -49,6 +65,29 @@ fun HomeScreen(
             modifier = Modifier.fillMaxSize(),
             contentScale = ContentScale.Crop
         )
+
+        // Server Status Indicator
+        Row(
+            modifier = Modifier
+                .align(Alignment.TopEnd)
+                .padding(16.dp)
+                .padding(top = 8.dp), // Add slight padding to push it down a bit more
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.End
+        ) {
+            Icon(
+                Icons.Default.Wifi, // Or another relevant icon
+                contentDescription = "Server Status",
+                tint = statusColor,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(Modifier.width(4.dp))
+            Text(
+                text = statusText,
+                style = MaterialTheme.typography.bodySmall,
+                color = statusColor
+            )
+        }
 
         Surface(
             modifier = Modifier
@@ -64,8 +103,8 @@ fun HomeScreen(
                 verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 OutlinedTextField(
-                    value = username,
-                    onValueChange = { username = it },
+                    value = localUsername,
+                    onValueChange = { localUsername = it },
                     label = { Text(LocalizationService.getString("username", language)) },
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
@@ -116,7 +155,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         Button(
-                            onClick = { onLogin(username, password) },
+                            onClick = { onLogin(localUsername, password) },
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.AutoMirrored.Filled.Login, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -124,7 +163,7 @@ fun HomeScreen(
                             Text(LocalizationService.getString("login", language))
                         }
                         OutlinedButton(
-                            onClick = { onRegister(username, password) },
+                            onClick = { onRegister(localUsername, password) },
                             modifier = Modifier.weight(1f)
                         ) {
                             Icon(Icons.Default.PersonAdd, contentDescription = null, modifier = Modifier.size(18.dp))
@@ -136,33 +175,54 @@ fun HomeScreen(
             }
         }
 
-        // Bottom Right Buttons
+        // Bankroll and Username Indicator at Bottom Left
+        Column(
+            modifier = Modifier
+                .align(Alignment.BottomStart)
+                .padding(24.dp),
+            horizontalAlignment = Alignment.Start,
+            verticalArrangement = Arrangement.spacedBy(4.dp) // Space between username and bankroll
+        ) {
+            Text(
+                text = "Username: $username",
+                style = MaterialTheme.typography.bodyMedium.copy(color = Gold), // Using Gold for emphasis
+            )
+            Text(
+                text = "Bankroll: $$$bankroll",
+                style = MaterialTheme.typography.titleMedium, // More prominent style
+                color = Gold
+            )
+        }
+
+        // Bottom Right Buttons (Swapped: Quit on left, Settings on right)
         Row(
             modifier = Modifier
                 .align(Alignment.BottomEnd)
                 .padding(24.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp)
         ) {
+            // New Quit Button (was Settings)
             OutlinedButton(
-                onClick = onSettingsClick,
+                onClick = onQuit, // Now triggers quit action
+                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F)), // Red color for quit
+                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD32F2F)),
+                shape = MaterialTheme.shapes.medium
+            ) {
+                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp)) // ExitToApp icon for Quit
+                Spacer(Modifier.width(8.dp))
+                Text(LocalizationService.getString("quit", language)) // Displays "Quit"
+            }
+
+            // New Settings Button (was Quit)
+            OutlinedButton(
+                onClick = onSettingsClick, // Now triggers settings action
                 border = androidx.compose.foundation.BorderStroke(1.dp, Gold),
                 colors = ButtonDefaults.outlinedButtonColors(contentColor = Gold),
                 shape = MaterialTheme.shapes.medium
             ) {
-                Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(18.dp))
+                Icon(Icons.Filled.Settings, contentDescription = null, modifier = Modifier.size(18.dp)) // Settings icon for Settings
                 Spacer(Modifier.width(8.dp))
-                Text(LocalizationService.getString("settings", language))
-            }
-
-            OutlinedButton(
-                onClick = onQuit,
-                colors = ButtonDefaults.outlinedButtonColors(contentColor = Color(0xFFD32F2F)),
-                border = androidx.compose.foundation.BorderStroke(1.dp, Color(0xFFD32F2F)),
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Icon(Icons.AutoMirrored.Filled.ExitToApp, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(8.dp))
-                Text(LocalizationService.getString("quit", language))
+                Text(LocalizationService.getString("settings", language)) // Displays "Settings"
             }
         }
     }
